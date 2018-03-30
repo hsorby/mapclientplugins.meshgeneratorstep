@@ -218,6 +218,17 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._model.setDisplayXiAxes(self._ui.displayXiAxes_checkBox.isChecked())
 
     def _annotationItemChanged(self, item):
+        fmaTerm = item.data(0, QtCore.Qt.UserRole + 1)
+        # for now we ignore "parent" items and let the tree widget handle selection
+        if item.childCount() == 0:
+            self._model.highlightDomain(fmaTerm, item.checkState(0) == QtCore.Qt.Checked)
+        if item.checkState(0) == QtCore.Qt.Checked:
+            print("FMA term selected: " + fmaTerm)
+        elif item.checkState(0) == QtCore.Qt.PartiallyChecked:
+            print("FMA term partially selected: " + fmaTerm)
+        else:
+            print("FMA term unselected: " + fmaTerm)
+
         print(item.text(0))
         print(item.data(0, QtCore.Qt.UserRole + 1))
 

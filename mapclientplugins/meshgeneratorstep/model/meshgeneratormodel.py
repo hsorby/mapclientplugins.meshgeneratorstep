@@ -497,6 +497,11 @@ class MeshGeneratorModel(object):
 
         scene.endChange()
 
+    def highlightDomain(self, fmaTerm, highlightState):
+        if highlightState:
+            print("Model will highlight the domain for: " + fmaTerm)
+        else:
+            print("Model will un-highlight the domain for: " + fmaTerm)
 
     def getOutputModelFilename(self):
         return self._filenameStem + '.ex2'
