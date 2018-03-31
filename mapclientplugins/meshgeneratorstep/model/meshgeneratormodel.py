@@ -11,7 +11,7 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.status import OK as ZINC_OK
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.glyph import Glyph
-from opencmiss.zinc.graphics import Graphics
+from opencmiss.zinc.graphics import Graphics, Graphicslineattributes
 from opencmiss.zinc.material import Material
 from opencmiss.zinc.node import Node
 from scaffoldmaker.scaffoldmaker import Scaffoldmaker
@@ -400,6 +400,12 @@ class MeshGeneratorModel(object):
             fieldassignment.assign()
             del newCoordinates
             del scale
+            
+        # create field that will just be the highlighted elements
+        self.highlightField = fm.findFieldByName('FMA_7101')
+        # and a group that is everything else
+        self.notHighlighted = fm.createFieldNot(self.highlightField)
+        
         fm.endChange()
         self._createGraphics(self._region)
         if self._sceneChangeCallback is not None:
@@ -452,6 +458,7 @@ class MeshGeneratorModel(object):
         elementNumbers.setName('displayElementNumbers')
         elementNumbers.setVisibilityFlag(self.isDisplayElementNumbers())
         surfaces = scene.createGraphicsSurfaces()
+        surfaces.setSubgroupField(self.notHighlighted)
         surfaces.setCoordinateField(coordinates)
         surfaces.setRenderPolygonMode(Graphics.RENDER_POLYGON_MODE_WIREFRAME if self.isDisplaySurfacesWireframe() else Graphics.RENDER_POLYGON_MODE_SHADED)
         surfaces.setExterior(self.isDisplaySurfacesExterior() if (meshDimension == 3) else False)
@@ -503,6 +510,18 @@ class MeshGeneratorModel(object):
         xiAxes.setMaterial(self._materialmodule.findMaterialByName('yellow'))
         xiAxes.setName('displayXiAxes')
         xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
+        
+#         nodeHighlight = scene.createGraphicsPoints()
+#         nodeHighlight.setSubgroupField(self.highlightField)
+#         nodeHighlight.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
+#         nodeHighlight.setCoordinateField(coordinates)
+#         pointattr = nodeHighlight.getGraphicspointattributes()
+#         #pointattr.setLabelField(cmiss_number)
+#         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
+#         pointattr.setBaseSize([0.1])
+#         nodeHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
+#         nodeHighlight.setName('nodeHighlight')
+#         nodeHighlight.setVisibilityFlag(True)
 
         scene.endChange()
 
@@ -510,10 +529,18 @@ class MeshGeneratorModel(object):
         self._highlights[fmaTerm] = self._highlights.get(fmaTerm, False)
         if highlightState and not self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = True
+            print("Model will highlight the domain for: " + fmaTerm)
             self._highlightDomainGraphics(self._region, fmaTerm)
         elif self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = False
             print("Model will un-highlight the domain for: " + fmaTerm)
+#         highlightedDomains = []
+#         fm = self._region.getFieldmodule()
+#         fm.beginChange()
+#         #for d in self._highlights:
+#         #    highlightedDomains.append(fm.findFieldByName(d))
+#         self.highlightField = fm.findFieldByName(fmaTerm)
+#         fm.endChange()
 
     def _highlightDomainGraphics(self, region, domainName):
         print("Model will highlight the domain for: " + domainName)
@@ -521,10 +548,7 @@ class MeshGeneratorModel(object):
         fm = region.getFieldmodule()
         coordinates = fm.findFieldByName('coordinates')
         domainGroupField = fm.findFieldByName(domainName)
-        if domainGroupField.isValid():
-            print('Group field valid: ' + domainName)
-        else:
-            print('Group field is not valid: ' + domainName)
+        notGroup = fm.createFieldNot(domainGroupField)
         cmiss_number = fm.findFieldByName('cmiss_number')
         scene = region.getScene()
         scene.beginChange()
@@ -535,7 +559,7 @@ class MeshGeneratorModel(object):
         pointattr = nodeHighlight.getGraphicspointattributes()
         #pointattr.setLabelField(cmiss_number)
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-        pointattr.setBaseSize([0.1])
+        pointattr.setBaseSize([0.05])
         nodeHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
         nodeHighlight.setName('nodeHighlight_' + domainName)
         nodeHighlight.setVisibilityFlag(True)
@@ -548,8 +572,28 @@ class MeshGeneratorModel(object):
         pointattr.setLabelText(1, domainName)
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_POINT)
         elementHighlight.setMaterial(self._materialmodule.findMaterialByName('cyan'))
-        elementHighlight.setName('displayElementNumbers_' + domainName)
+        elementHighlight.setName('elementHighlight_' + domainName)
         elementHighlight.setVisibilityFlag(True)
+#         surfaceHighlight = scene.createGraphicsSurfaces()
+#         surfaceHighlight.setCoordinateField(coordinates)
+#         surfaceHighlight.setRenderPolygonMode(Graphics.RENDER_POLYGON_MODE_SHADED)
+#         #surfaces.setExterior(self.isDisplaySurfacesExterior() if (meshDimension == 3) else False)
+#         surfaceHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
+#         surfaceHighlight.setName('highlightSurfaces_' + domainName)
+#         surfaceHighlight.setVisibilityFlag(True)
+        
+        # no idea why this isn't working?! doesn't look like group field has any lines in it?
+        lines = scene.createGraphicsLines()
+        lines.setSubgroupField(domainGroupField)
+        lines.setCoordinateField(coordinates)
+        lineattr = lines.getGraphicslineattributes()
+        lineattr.setShapeType(Graphicslineattributes.SHAPE_TYPE_CIRCLE_EXTRUSION)
+        lineattr.setBaseSize(0.05)
+        lines.setName('highlightLines_' + domainName)
+        lines.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
+        lines.setVisibilityFlag(True)
+
+        
         scene.endChange()
         
     def getOutputModelFilename(self):
