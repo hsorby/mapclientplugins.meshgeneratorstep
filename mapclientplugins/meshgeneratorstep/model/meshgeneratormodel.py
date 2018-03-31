@@ -78,6 +78,7 @@ class MeshGeneratorModel(object):
             'displaySurfacesWireframe' : False,
             'displayXiAxes' : False
         }
+        self._highlights = dict()
         self._discoverAllMeshTypes()
         self._loadSettings()
         self._generateMesh()
@@ -498,9 +499,12 @@ class MeshGeneratorModel(object):
         scene.endChange()
 
     def highlightDomain(self, fmaTerm, highlightState):
-        if highlightState:
+        self._highlights[fmaTerm] = self._highlights.get(fmaTerm, False)
+        if highlightState and not self._highlights[fmaTerm]:
+            self._highlights[fmaTerm] = True
             print("Model will highlight the domain for: " + fmaTerm)
-        else:
+        elif self._highlights[fmaTerm]:
+            self._highlights[fmaTerm] = False
             print("Model will un-highlight the domain for: " + fmaTerm)
 
     def getOutputModelFilename(self):
