@@ -57,6 +57,14 @@ class MeshGeneratorModel(object):
         trans_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
         trans_blue.setAttributeReal(Material.ATTRIBUTE_ALPHA , 0.3)
         trans_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
+        highlight_material = self._materialmodule.createMaterial()
+        highlight_material.setName('highlight_material')
+        highlight_material.setManaged(True)
+        highlight_material.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.6, 0.2 ])
+        highlight_material.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 1.0, 0.7 ])
+        highlight_material.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
+        highlight_material.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
+        highlight_material.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
         glyphmodule = self._context.getGlyphmodule()
         glyphmodule.defineStandardGlyphs()
         self._selection_model = MeshSelectionModel(self)
@@ -502,11 +510,46 @@ class MeshGeneratorModel(object):
         self._highlights[fmaTerm] = self._highlights.get(fmaTerm, False)
         if highlightState and not self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = True
-            print("Model will highlight the domain for: " + fmaTerm)
+            self._highlightDomainGraphics(self._region, fmaTerm)
         elif self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = False
             print("Model will un-highlight the domain for: " + fmaTerm)
-
+            
+    def _highlightDomainGraphics(self, region, domainName):
+        print("Model will highlight the domain for: " + domainName)
+        # make highlight graphics for the given domain
+        fm = region.getFieldmodule()
+        coordinates = fm.findFieldByName('coordinates')
+        domainGroupField = fm.findFieldByName(domainName)
+        if domainGroupField.isValid():
+            print('Group field valid: ' + domainName)
+        else:
+            print('Group field is not valid: ' + domainName)
+        cmiss_number = fm.findFieldByName('cmiss_number')
+        scene = region.getScene()
+        scene.beginChange()
+        nodeLabel = scene.createGraphicsPoints()
+        nodeLabel.setSubgroupField(domainGroupField)
+        nodeLabel.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeLabel.setCoordinateField(coordinates)
+        pointattr = nodeLabel.getGraphicspointattributes()
+        pointattr.setLabelField(cmiss_number)
+        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
+        nodeLabel.setMaterial(self._materialmodule.findMaterialByName('yellow'))
+        nodeLabel.setName('highlightNodeLabel' + domainName)
+        nodeLabel.setVisibilityFlag(True)
+        elementNumbers = scene.createGraphicsPoints()
+        elementNumbers.setSubgroupField(domainGroupField)
+        elementNumbers.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
+        elementNumbers.setCoordinateField(coordinates)
+        pointattr = elementNumbers.getGraphicspointattributes()
+        pointattr.setLabelField(cmiss_number)
+        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
+        elementNumbers.setMaterial(self._materialmodule.findMaterialByName('cyan'))
+        elementNumbers.setName('displayElementNumbers_' + domainName)
+        elementNumbers.setVisibilityFlag(True)
+        scene.endChange()
+        
     def getOutputModelFilename(self):
         return self._filenameStem + '.ex2'
 
