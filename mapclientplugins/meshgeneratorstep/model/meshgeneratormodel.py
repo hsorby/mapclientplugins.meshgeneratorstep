@@ -362,6 +362,8 @@ class MeshGeneratorModel(object):
         fm = self._region.getFieldmodule()
         fm.beginChange()
         logger = self.getContext().getLogger()
+        fmaIds = self._currentMeshType.getAnnotationGroupNames()
+        Scaffoldmaker.defineAnnotationGroupFields(fm, fmaIds)
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
         loggerMessageCount = logger.getNumberOfMessages()
         if loggerMessageCount > 0:
@@ -392,6 +394,17 @@ class MeshGeneratorModel(object):
             #size2 = nodes.getSize()
             #print('deleted', size1 - size2, 'nodes')
         fm.defineAllFaces()
+        
+        # now that faces are defined we need to make sure our groups are updated
+        mesh3d = fm.findMeshByDimension(3)
+        for fmaTerm in fmaIds:
+            groupField = fm.findFieldByName(fmaTerm).castGroup()
+            # assume groupField already has subelement handling on, or turn on here
+            elementGroupField = groupField.getFieldElementGroup(mesh3d)
+            meshGroup = elementGroupField.getMeshGroup()
+            meshGroup.addElementsConditional(elementGroupField)
+        fm.endChange()
+        
         if self._settings['scale'] != '1*1*1':
             coordinates = fm.findFieldByName('coordinates').castFiniteElement()
             scale = fm.createFieldConstant(self._scale)
@@ -402,7 +415,7 @@ class MeshGeneratorModel(object):
             del scale
             
         # create field that will just be the highlighted elements
-        self.highlightField = fm.findFieldByName('FMA_7101')
+        self.highlightField = fm.createFieldGroup()
         # and a group that is everything else
         self.notHighlighted = fm.createFieldNot(self.highlightField)
         
