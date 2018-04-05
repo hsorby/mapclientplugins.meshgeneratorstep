@@ -9,7 +9,7 @@ import json
 
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.status import OK as ZINC_OK
-from opencmiss.zinc.field import Field
+from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.glyph import Glyph
 from opencmiss.zinc.graphics import Graphics, Graphicslineattributes
 from opencmiss.zinc.material import Material
@@ -403,7 +403,6 @@ class MeshGeneratorModel(object):
             elementGroupField = groupField.getFieldElementGroup(mesh3d)
             meshGroup = elementGroupField.getMeshGroup()
             meshGroup.addElementsConditional(elementGroupField)
-        fm.endChange()
         
         if self._settings['scale'] != '1*1*1':
             coordinates = fm.findFieldByName('coordinates').castFiniteElement()
@@ -416,6 +415,7 @@ class MeshGeneratorModel(object):
             
         # create field that will just be the highlighted elements
         self.highlightField = fm.createFieldGroup()
+        self.highlightField.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
         # and a group that is everything else
         self.notHighlighted = fm.createFieldNot(self.highlightField)
         
@@ -531,10 +531,17 @@ class MeshGeneratorModel(object):
 #         pointattr = nodeHighlight.getGraphicspointattributes()
 #         #pointattr.setLabelField(cmiss_number)
 #         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-#         pointattr.setBaseSize([0.1])
+#         pointattr.setBaseSize([0.05])
 #         nodeHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
 #         nodeHighlight.setName('nodeHighlight')
 #         nodeHighlight.setVisibilityFlag(True)
+        surfaceHighlight = scene.createGraphicsSurfaces()
+        surfaceHighlight.setSubgroupField(self.highlightField)
+        surfaceHighlight.setCoordinateField(coordinates)
+        surfaceHighlight.setRenderPolygonMode(Graphics.RENDER_POLYGON_MODE_SHADED)
+        surfaceHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
+        surfaceHighlight.setName('displayHighlightSurfaces')
+        surfaceHighlight.setVisibilityFlag(True)
 
         scene.endChange()
 
@@ -543,7 +550,7 @@ class MeshGeneratorModel(object):
         if highlightState and not self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = True
             print("Model will highlight the domain for: " + fmaTerm)
-            self._highlightDomainGraphics(self._region, fmaTerm)
+            self._highlightDomainGraphics(self._region, fmaTerm, True)
         elif self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = False
             print("Model will un-highlight the domain for: " + fmaTerm)
@@ -555,38 +562,54 @@ class MeshGeneratorModel(object):
 #         self.highlightField = fm.findFieldByName(fmaTerm)
 #         fm.endChange()
 
-    def _highlightDomainGraphics(self, region, domainName):
+    def _highlightDomainGraphics(self, region, domainName, clearHighlights):
         print("Model will highlight the domain for: " + domainName)
         # make highlight graphics for the given domain
         fm = region.getFieldmodule()
-        coordinates = fm.findFieldByName('coordinates')
-        domainGroupField = fm.findFieldByName(domainName)
-        notGroup = fm.createFieldNot(domainGroupField)
-        cmiss_number = fm.findFieldByName('cmiss_number')
-        scene = region.getScene()
-        scene.beginChange()
-        nodeHighlight = scene.createGraphicsPoints()
-        nodeHighlight.setSubgroupField(domainGroupField)
-        nodeHighlight.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodeHighlight.setCoordinateField(coordinates)
-        pointattr = nodeHighlight.getGraphicspointattributes()
-        #pointattr.setLabelField(cmiss_number)
-        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-        pointattr.setBaseSize([0.05])
-        nodeHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
-        nodeHighlight.setName('nodeHighlight_' + domainName)
-        nodeHighlight.setVisibilityFlag(True)
-        elementHighlight = scene.createGraphicsPoints()
-        elementHighlight.setSubgroupField(domainGroupField)
-        elementHighlight.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
-        elementHighlight.setCoordinateField(coordinates)
-        pointattr = elementHighlight.getGraphicspointattributes()
-        #pointattr.setLabelField(cmiss_number)
-        pointattr.setLabelText(1, domainName)
-        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_POINT)
-        elementHighlight.setMaterial(self._materialmodule.findMaterialByName('cyan'))
-        elementHighlight.setName('elementHighlight_' + domainName)
-        elementHighlight.setVisibilityFlag(True)
+        fm.beginChange()
+        # not sure why this isn't working...
+        #self.highlightField = fm.findFieldByName(domainName)
+        # so try adding all the elements manually
+        if clearHighlights:
+            self.highlightField.clear()
+        mesh3d = fm.findMeshByDimension(3)
+        sourceGroupField = fm.findFieldByName(domainName).castGroup()
+        sourceElementGroupField = sourceGroupField.getFieldElementGroup(mesh3d)
+        elementGroupField = self.highlightField.getFieldElementGroup(mesh3d)
+        if not elementGroupField.isValid():
+            elementGroupField = self.highlightField.createFieldElementGroup(mesh3d)
+        meshGroup = elementGroupField.getMeshGroup()
+        meshGroup.addElementsConditional(sourceElementGroupField)
+        fm.endChange()
+        
+#         coordinates = fm.findFieldByName('coordinates')
+#         domainGroupField = fm.findFieldByName(domainName)
+#         notGroup = fm.createFieldNot(domainGroupField)
+#         cmiss_number = fm.findFieldByName('cmiss_number')
+#         scene = region.getScene()
+#         scene.beginChange()
+# #         nodeHighlight = scene.createGraphicsPoints()
+# #         nodeHighlight.setSubgroupField(domainGroupField)
+# #         nodeHighlight.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
+# #         nodeHighlight.setCoordinateField(coordinates)
+# #         pointattr = nodeHighlight.getGraphicspointattributes()
+# #         #pointattr.setLabelField(cmiss_number)
+# #         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
+# #         pointattr.setBaseSize([0.05])
+# #         nodeHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
+# #         nodeHighlight.setName('nodeHighlight_' + domainName)
+# #         nodeHighlight.setVisibilityFlag(True)
+#         elementHighlight = scene.createGraphicsPoints()
+#         elementHighlight.setSubgroupField(self.highlightField)
+#         elementHighlight.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
+#         elementHighlight.setCoordinateField(coordinates)
+#         pointattr = elementHighlight.getGraphicspointattributes()
+#         #pointattr.setLabelField(cmiss_number)
+#         pointattr.setLabelText(1, domainName)
+#         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_POINT)
+#         elementHighlight.setMaterial(self._materialmodule.findMaterialByName('cyan'))
+#         elementHighlight.setName('elementHighlight_' + domainName)
+#         elementHighlight.setVisibilityFlag(True)
 #         surfaceHighlight = scene.createGraphicsSurfaces()
 #         surfaceHighlight.setCoordinateField(coordinates)
 #         surfaceHighlight.setRenderPolygonMode(Graphics.RENDER_POLYGON_MODE_SHADED)
@@ -595,19 +618,17 @@ class MeshGeneratorModel(object):
 #         surfaceHighlight.setName('highlightSurfaces_' + domainName)
 #         surfaceHighlight.setVisibilityFlag(True)
         
-        # no idea why this isn't working?! doesn't look like group field has any lines in it?
-        lines = scene.createGraphicsLines()
-        lines.setSubgroupField(domainGroupField)
-        lines.setCoordinateField(coordinates)
-        lineattr = lines.getGraphicslineattributes()
-        lineattr.setShapeType(Graphicslineattributes.SHAPE_TYPE_CIRCLE_EXTRUSION)
-        lineattr.setBaseSize(0.05)
-        lines.setName('highlightLines_' + domainName)
-        lines.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
-        lines.setVisibilityFlag(True)
-
+#         lines = scene.createGraphicsLines()
+#         lines.setSubgroupField(domainGroupField)
+#         lines.setCoordinateField(coordinates)
+#         lineattr = lines.getGraphicslineattributes()
+#         lineattr.setShapeType(Graphicslineattributes.SHAPE_TYPE_CIRCLE_EXTRUSION)
+#         lineattr.setBaseSize(0.05)
+#         lines.setName('highlightLines_' + domainName)
+#         lines.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
+#         lines.setVisibilityFlag(True)
         
-        scene.endChange()
+#         scene.endChange()
         
     def getOutputModelFilename(self):
         return self._filenameStem + '.ex2'
