@@ -1,73 +1,36 @@
-'''
+"""
 Created on 9 Mar, 2018 from mapclientplugins.meshgeneratorstep.
 
 @author: Richard Christie
-'''
+"""
 
-import os, string, sys
-import json
+import string
 
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.status import OK as ZINC_OK
-from opencmiss.zinc.field import Field, FieldGroup
+from opencmiss.zinc.field import FieldGroup
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.glyph import Glyph
-from opencmiss.zinc.graphics import Graphics, Graphicslineattributes
-from opencmiss.zinc.material import Material
+from opencmiss.zinc.graphics import Graphics
 from opencmiss.zinc.node import Node
+
 from scaffoldmaker.scaffoldmaker import Scaffoldmaker
 
-from mapclientplugins.meshgeneratorstep.model.meshselectionmodel import MeshSelectionModel
+from mapclientplugins.meshgeneratorstep.model.meshalignmentmodel import MeshAlignmentModel
 
 STRING_FLOAT_FORMAT = '{:.8g}'
 
 
-class MeshGeneratorModel(object):
-    '''
+class MeshGeneratorModel(MeshAlignmentModel):
+    """
     Framework for generating meshes of a number of types, with mesh type specific options
-    '''
+    """
 
-    def __init__(self, location, identifier):
-        '''
-        Constructor
-        '''
-        self._location = location
-        self._identifier = identifier
-        self._filenameStem = os.path.join(self._location, self._identifier)
-        self._context = Context("MeshGenerator")
-        tess = self._context.getTessellationmodule().getDefaultTessellation()
-        tess.setRefinementFactors(12)
+    def __init__(self, region, material_module):
+        super(MeshGeneratorModel, self).__init__()
+        self._region_name = "generated_mesh"
+        self._parent_region = region
+        self._materialmodule = material_module
+        self._region = None
         self._sceneChangeCallback = None
-        # set up standard materials and glyphs so we can use them elsewhere
-        self._materialmodule = self._context.getMaterialmodule()
-        self._materialmodule.defineStandardMaterials()
-        solid_blue = self._materialmodule.createMaterial()
-        solid_blue.setName('solid_blue')
-        solid_blue.setManaged(True)
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.2, 0.6 ])
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 0.7, 1.0 ])
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
-        solid_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
-        trans_blue = self._materialmodule.createMaterial()
-        trans_blue.setName('trans_blue')
-        trans_blue.setManaged(True)
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.2, 0.6 ])
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 0.7, 1.0 ])
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
-        trans_blue.setAttributeReal(Material.ATTRIBUTE_ALPHA , 0.3)
-        trans_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
-        highlight_material = self._materialmodule.createMaterial()
-        highlight_material.setName('highlight_material')
-        highlight_material.setManaged(True)
-        highlight_material.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.6, 0.2 ])
-        highlight_material.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 1.0, 0.7 ])
-        highlight_material.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
-        highlight_material.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
-        highlight_material.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
-        glyphmodule = self._context.getGlyphmodule()
-        glyphmodule.defineStandardGlyphs()
-        self._selection_model = MeshSelectionModel(self)
         self._deleteElementRanges = []
         self._scale = [ 1.0, 1.0, 1.0 ]
         self._settings = {
@@ -88,8 +51,6 @@ class MeshGeneratorModel(object):
         }
         self._highlights = dict()
         self._discoverAllMeshTypes()
-        self._loadSettings()
-        self._generateMesh()
 
     def _discoverAllMeshTypes(self):
         scaffoldmaker = Scaffoldmaker()
@@ -156,9 +117,9 @@ class MeshGeneratorModel(object):
         return self._settings['deleteElementRanges']
 
     def _parseDeleteElementsRangesText(self, elementRangesTextIn):
-        '''
+        """
         :return: True if ranges changed, otherwise False
-        '''
+        """
         elementRanges = []
         for elementRangeText in elementRangesTextIn.split(','):
             try:
@@ -206,9 +167,9 @@ class MeshGeneratorModel(object):
         return self._settings['scale']
 
     def _parseScaleText(self, scaleTextIn):
-        '''
+        """
         :return: True if scale changed, otherwise False
-        '''
+        """
         scale = []
         for valueText in scaleTextIn.split('*'):
             try:
@@ -229,38 +190,8 @@ class MeshGeneratorModel(object):
         if self._parseScaleText(scaleTextIn):
             self._generateMesh()
 
-    def getContext(self):
-        return self._context
-
-    def getRegion(self):
-        return self._region
-
     def registerSceneChangeCallback(self, sceneChangeCallback):
         self._sceneChangeCallback = sceneChangeCallback
-
-    def getScene(self):
-        return self._region.getScene()
-
-    def getIdentifier(self):
-        return self._identifier
-
-    def _loadSettings(self):
-        try:
-            with open(self._filenameStem + '-settings.json', 'r') as f:
-                self._settings.update(json.loads(f.read()))
-            self._currentMeshType = self._getMeshTypeByName(self._settings['meshTypeName'])
-            self._parseDeleteElementsRangesText(self._settings['deleteElementRanges'])
-            # merge any new options for this generator
-            savedMeshTypeOptions = self._settings['meshTypeOptions']
-            self._settings['meshTypeOptions'] = self._currentMeshType.getDefaultOptions()
-            self._settings['meshTypeOptions'].update(savedMeshTypeOptions)
-            self._parseScaleText(self._settings['scale'])
-        except:
-            pass  # no settings saved yet
-
-    def _saveSettings(self):
-        with open(self._filenameStem + '-settings.json', 'w') as f:
-            f.write(json.dumps(self._settings, default=lambda o: o.__dict__, sort_keys=True, indent=4))
 
     def _getVisibility(self, graphicsName):
         return self._settings[graphicsName]
@@ -344,6 +275,17 @@ class MeshGeneratorModel(object):
     def setDisplayXiAxes(self, show):
         self._setVisibility('displayXiAxes', show)
 
+    def needPerturbLines(self):
+        """
+        Return if solid surfaces are drawn with lines, requiring perturb lines to be activated.
+        """
+        if self._region is None:
+            return False
+        mesh2d = self._region.getFieldmodule().findMeshByDimension(2)
+        if mesh2d.getSize() == 0:
+            return False
+        return self.isDisplayLines() and self.isDisplaySurfaces() and not self.isDisplaySurfacesTranslucent()
+
     def _getMesh(self):
         fm = self._region.getFieldmodule()
         for dimension in range(3,0,-1):
@@ -357,21 +299,50 @@ class MeshGeneratorModel(object):
     def getMeshDimension(self):
         return self._getMesh().getDimension()
 
-    def _generateMesh(self):
-        self._region = self._context.createRegion()
+    def getNodeLocation(self, node_id):
         fm = self._region.getFieldmodule()
         fm.beginChange()
-        logger = self.getContext().getLogger()
+        coordinates = fm.findFieldByName('coordinates')
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        node = nodes.findNodeByIdentifier(node_id)
+        fc = fm.createFieldcache()
+        fc.setNode(node)
+        _, position = coordinates.evaluateReal(fc, 3)
+        fm.endChange()
+
+        return self._getSceneTransformationFromAdjustedPosition(position)
+
+    def getSettings(self):
+        return self._settings
+
+    def setSettings(self, settings):
+        self._settings.update(settings)
+        self._currentMeshType = self._getMeshTypeByName(self._settings['meshTypeName'])
+        self._parseDeleteElementsRangesText(self._settings['deleteElementRanges'])
+        # merge any new options for this generator
+        savedMeshTypeOptions = self._settings['meshTypeOptions']
+        self._settings['meshTypeOptions'] = self._currentMeshType.getDefaultOptions()
+        self._settings['meshTypeOptions'].update(savedMeshTypeOptions)
+        self._parseScaleText(self._settings['scale'])
+        self._generateMesh()
+
+    def _generateMesh(self):
+        if self._region:
+            self._parent_region.removeChild(self._region)
+        self._region = self._parent_region.createChild(self._region_name)
+        self._scene = self._region.getScene()
+        fm = self._region.getFieldmodule()
+        fm.beginChange()
         fmaIds = self._currentMeshType.getAnnotationGroupNames()
         Scaffoldmaker.defineAnnotationGroupFields(fm, fmaIds)
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
-        loggerMessageCount = logger.getNumberOfMessages()
-        if loggerMessageCount > 0:
-            for i in range(1, loggerMessageCount + 1):
-                print(logger.getMessageTypeAtIndex(i), logger.getMessageTextAtIndex(i))
-            logger.removeAllMessages()
+        # loggerMessageCount = logger.getNumberOfMessages()
+        # if loggerMessageCount > 0:
+        #     for i in range(1, loggerMessageCount + 1):
+        #         print(logger.getMessageTypeAtIndex(i), logger.getMessageTextAtIndex(i))
+        #     logger.removeAllMessages()
         mesh = self._getMesh()
-        meshDimension = mesh.getDimension()
+        # meshDimension = mesh.getDimension()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         if len(self._deleteElementRanges) > 0:
             deleteElementIdentifiers = []
@@ -489,7 +460,7 @@ class MeshGeneratorModel(object):
                 if first or (absScale < minScale):
                     minScale = absScale
                     first = False
-        width = 0.02*minScale
+        width = 0.01*minScale
 
         nodeDerivativeMaterialNames = [ 'gold', 'silver', 'green' ]
         for i in range(meshDimension):
@@ -543,6 +514,7 @@ class MeshGeneratorModel(object):
         surfaceHighlight.setName('displayHighlightSurfaces')
         surfaceHighlight.setVisibilityFlag(True)
 
+        self.applyAlignment()
         scene.endChange()
 
     def highlightDomain(self, fmaTerm, highlightState):
@@ -639,3 +611,6 @@ class MeshGeneratorModel(object):
     def done(self):
         self._saveSettings()
         self._writeModel()
+
+    def writeModel(self, file_name):
+        self._region.writeFile(file_name)
