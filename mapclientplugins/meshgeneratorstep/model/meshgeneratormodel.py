@@ -31,6 +31,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         self._materialmodule = material_module
         self._region = None
         self._sceneChangeCallback = None
+        self._annotation_groups = None
         self._deleteElementRanges = []
         self._scale = [ 1.0, 1.0, 1.0 ]
         self._settings = {
@@ -333,9 +334,9 @@ class MeshGeneratorModel(MeshAlignmentModel):
         self._scene = self._region.getScene()
         fm = self._region.getFieldmodule()
         fm.beginChange()
-        fmaIds = self._currentMeshType.getAnnotationGroupNames()
-        Scaffoldmaker.defineAnnotationGroupFields(fm, fmaIds)
-        self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
+        # fmaIds = self._currentMeshType.getAnnotationGroupNames()
+        # Scaffoldmaker.defineAnnotationGroupFields(fm, fmaIds)
+        self._annotation_groups = self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
         # loggerMessageCount = logger.getNumberOfMessages()
         # if loggerMessageCount > 0:
         #     for i in range(1, loggerMessageCount + 1):
@@ -367,13 +368,13 @@ class MeshGeneratorModel(MeshAlignmentModel):
         fm.defineAllFaces()
         
         # now that faces are defined we need to make sure our groups are updated
-        mesh3d = fm.findMeshByDimension(3)
-        for fmaTerm in fmaIds:
-            groupField = fm.findFieldByName(fmaTerm).castGroup()
-            # assume groupField already has subelement handling on, or turn on here
-            elementGroupField = groupField.getFieldElementGroup(mesh3d)
-            meshGroup = elementGroupField.getMeshGroup()
-            meshGroup.addElementsConditional(elementGroupField)
+        # mesh3d = fm.findMeshByDimension(3)
+        # for fmaTerm in fmaIds:
+        #     groupField = fm.findFieldByName(fmaTerm).castGroup()
+        #     # assume groupField already has subelement handling on, or turn on here
+        #     elementGroupField = groupField.getFieldElementGroup(mesh3d)
+        #     meshGroup = elementGroupField.getMeshGroup()
+        #     meshGroup.addElementsConditional(elementGroupField)
         
         if self._settings['scale'] != '1*1*1':
             coordinates = fm.findFieldByName('coordinates').castFiniteElement()
