@@ -11,6 +11,8 @@ from opencmiss.zinc.glyph import Glyph
 from opencmiss.zinc.graphics import Graphics
 from opencmiss.zinc.node import Node
 from scaffoldmaker.scaffoldmaker import Scaffoldmaker
+from scaffoldmaker.utils.zinc_utils import *
+import numpy as np
 
 from mapclientplugins.meshgeneratorstep.model.meshalignmentmodel import MeshAlignmentModel
 
@@ -162,6 +164,69 @@ class MeshGeneratorModel(MeshAlignmentModel):
 
     def getScaleText(self):
         return self._settings['scale']
+
+    def createEEGPoints(self, region, eeg_group):
+        fm = region.getFieldmodule()
+        cache = fm.createFieldcache()
+        coordinates = fm.findFieldByName('coordinates')
+        coordinates = coordinates.castFiniteElement()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodeIdentifier = nodes.getSize() + 1
+
+
+        #create EEG subset
+        eeg_group.removeAllNodes()
+
+
+
+        eeg_coord = [[1, 1, 1],
+                     [1, .5, .5],
+                     [0, .4, .4],
+                     [1, .2, .2]]
+
+        for i in range(len(eeg_coord)):
+            eegNode = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(eegNode)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, eeg_coord[i])
+            eeg_group.addNode(eegNode)
+            nodeIdentifier += 1
+
+
+
+
+
+
+    def createEEGSubField(self, region, coordinates):
+        fm = region.getFieldmodule()
+        cache = fm.createFieldcache()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodeIdentifier = nodes.getSize() + 1
+
+        # create EEG subset
+        field_group = fm.createFieldGroup()
+        sub_set_field = field_group.createFieldNodeGroup(nodes)
+        eeg_group = sub_set_field.getNodesetGroup()
+        eeg_group.removeAllNodes()
+
+        eeg_coord = [[1, 1, 1],
+                     [1, .5, .5],
+                     [0, .4, .4],
+                     [1, .2, .2]]
+
+        coordinates = coordinates.castFiniteElement()
+        for i in range(len(eeg_coord)):
+            eegNode = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(eegNode)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, eeg_coord[i])
+            eeg_group.addNode(eegNode)
+            nodeIdentifier += 1
+        return eeg_group
 
     def _parseScaleText(self, scaleTextIn):
         """
@@ -365,6 +430,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
             self._sceneChangeCallback()
 
     def _createGraphics(self, region):
+        # Node numbers are generated here
         fm = region.getFieldmodule()
         meshDimension = self.getMeshDimension()
         coordinates = fm.findFieldByName('coordinates')
@@ -392,22 +458,46 @@ class MeshGeneratorModel(MeshAlignmentModel):
         lines.setCoordinateField(coordinates)
         lines.setName('displayLines')
         lines.setVisibilityFlag(self.isDisplayLines())
+
+
         nodeNumbers = scene.createGraphicsPoints()
         nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodeNumbers.setCoordinateField(coordinates)
         pointattr = nodeNumbers.getGraphicspointattributes()
         pointattr.setLabelField(cmiss_number)
-        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
-        nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('green'))
+
+
+
+        ## EEG nodes
+        nodeNumbers = scene.createGraphicsPoints()
+        nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeNumbers.setCoordinateField(coordinates)
+
+
+        fng = fm.createFieldNodeGroup(fm.findNodesetByName('nodes'))
+        nodeNumbers.setSubgroupField(fng)
+        ndg = fng.getNodesetGroup()
+        self.createEEGPoints(region,ndg)
+
+        pointattr = nodeNumbers.getGraphicspointattributes()
+        pointattr.setLabelText(1, 'EEG Node')
+        pointattr.setLabelOffset([.5, 0, 0])
+        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
+        pointattr.setBaseSize([.05, .05, .05])
+
+
+        nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('white'))
         nodeNumbers.setName('displayNodeNumbers')
         nodeNumbers.setVisibilityFlag(self.isDisplayNodeNumbers())
+
+
         elementNumbers = scene.createGraphicsPoints()
         elementNumbers.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
         elementNumbers.setCoordinateField(coordinates)
         pointattr = elementNumbers.getGraphicspointattributes()
         pointattr.setLabelField(cmiss_number)
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
-        elementNumbers.setMaterial(self._materialmodule.findMaterialByName('cyan'))
+        elementNumbers.setMaterial(self._materialmodule.findMaterialByName('red'))
         elementNumbers.setName('displayElementNumbers')
         elementNumbers.setVisibilityFlag(self.isDisplayElementNumbers())
         surfaces = scene.createGraphicsSurfaces()
@@ -463,8 +553,13 @@ class MeshGeneratorModel(MeshAlignmentModel):
         xiAxes.setName('displayXiAxes')
         xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
 
+        # -----create Node for EEG starts here------ (pasted from scaffoldmaker)
+
+        # -----create Node for EEG ends here------ (pasted from scaffoldmaker)
+
         self.applyAlignment()
         scene.endChange()
+
 
     def writeModel(self, file_name):
         self._region.writeFile(file_name)

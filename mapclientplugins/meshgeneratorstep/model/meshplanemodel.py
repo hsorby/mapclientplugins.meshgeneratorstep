@@ -17,7 +17,7 @@ class MeshPlaneModel(MeshAlignmentModel, FixCoordinatesMixin):
         super(MeshPlaneModel, self).__init__()
         self._region_name = "plane_mesh"
         self._timekeeper = None
-        self._frame_count = 0
+        self._frame_count = 100
         self._parent_region = region
         self._region = None
         self._settings = {
