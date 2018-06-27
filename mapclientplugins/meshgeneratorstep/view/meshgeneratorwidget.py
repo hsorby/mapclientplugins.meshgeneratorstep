@@ -3,15 +3,23 @@ Created on Aug 29, 2017
 
 @author: Richard Christie
 """
+
+
 import types
+from threeWrapper import BlackfynnGet
 
 from PySide import QtGui, QtCore
 from functools import partial
 
 from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import FIDUCIAL_MARKER_LABELS
 from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_MeshGeneratorWidget
-from opencmiss.utils.maths import vectorops
 
+from opencmiss.utils.maths import vectorops
+import time
+
+# imports added for pop up graph
+import pyqtgraph as pg
+import numpy as np
 
 class MeshGeneratorWidget(QtGui.QWidget):
 
@@ -32,11 +40,16 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._populateFiducialMarkersComboBox()
         self._marker_mode_active = False
         self._have_images = False
+        self.x = 0
+        self.y = 0
         # self._populateAnnotationTree()
         meshTypeNames = self._generator_model.getAllMeshTypeNames()
         for meshTypeName in meshTypeNames:
             self._ui.meshType_comboBox.addItem(meshTypeName)
         self._makeConnections()
+
+        self._ui.sceneviewer_widget.blackfynn = BlackfynnGet()
+
 
     def _graphicsInitialized(self):
         """
@@ -55,6 +68,10 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._autoPerturbLines()
             self._viewAll()
 
+            sceneviewer.setLookatParametersNonSkew([2.0, -2.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0])
+            sceneviewer.setTransparencyMode(sceneviewer.TRANSPARENCY_MODE_SLOW)
+            self._viewAll()
+
     def _sceneChanged(self):
         sceneviewer = self._ui.sceneviewer_widget.getSceneviewer()
         if sceneviewer is not None:
@@ -63,6 +80,16 @@ class MeshGeneratorWidget(QtGui.QWidget):
             scene = self._model.getScene()
             self._ui.sceneviewer_widget.setScene(scene)
             self._autoPerturbLines()
+
+    def _sceneAnimate(self):
+        sceneviewer = self._ui.sceneviewer_widget.getSceneviewer()
+        if sceneviewer is not None:
+            self._model.loadSettings()
+            scene = self._model.getScene()
+            self._ui.sceneviewer_widget.setScene(scene)
+            self._autoPerturbLines()
+            self._viewAll()
+
 
     def _autoPerturbLines(self):
         """
@@ -103,6 +130,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.timeLoop_checkBox.clicked.connect(self._timeLoopClicked)
         self._ui.displayFiducialMarkers_checkBox.clicked.connect(self._displayFiducialMarkersClicked)
         self._ui.fiducialMarker_comboBox.currentIndexChanged.connect(self._fiducialMarkerChanged)
+        self._ui.submitButton.clicked.connect(self._submitClicked)
         # self._ui.treeWidgetAnnotation.itemSelectionChanged.connect(self._annotationSelectionChanged)
         # self._ui.treeWidgetAnnotation.itemChanged.connect(self._annotationItemChanged)
 
@@ -194,6 +222,8 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._timePlayStopClicked()
         else:
             self._ui.timeValue_doubleSpinBox.setValue(value)
+            if self._ui.displayEEGAnimation_checkBox.isChecked():
+                self._sceneAnimate()
         self._ui.timeValue_doubleSpinBox.blockSignals(False)
 
     def _updateFrameIndex(self, value):
@@ -230,6 +260,16 @@ class MeshGeneratorWidget(QtGui.QWidget):
 
     def _fixImagePlaneClicked(self):
         self._plane_model.setImagePlaneFixed(self._ui.fixImagePlane_checkBox.isChecked())
+
+    #blackfynn addition (by jesse)
+    def _submitClicked(self):
+        if self._ui.api_key.displayText() != 'API Key' and self._ui.api_secret.text() != '***************************':
+            self._ui.Login_groupBox.setTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Login details saved, click on a node to load data", None,
+                                                                       QtGui.QApplication.UnicodeUTF8))
+            self._ui.sceneviewer_widget.blackfynn.api_token = self._ui.api_key.text()
+            self._ui.sceneviewer_widget.blackfynn.api_secret = self._ui.api_secret.text()
+            self._ui.api_secret.setText('***************************')
+
 
     def _displayImagePlaneClicked(self):
         self._plane_model.setImagePlaneVisible(self._ui.displayImagePlane_checkBox.isChecked())
@@ -286,7 +326,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
                 layout.addWidget(lineEdit)
 
     def _refreshOptions(self):
-        self._ui.identifier_label.setText('Identifier:  ' + self._model.getIdentifier())
+        self._ui.identifier_label_2.setText('Identifier:  ' + self._model.getIdentifier())
         self._ui.deleteElementsRanges_lineEdit.setText(self._generator_model.getDeleteElementsRangesText())
         self._ui.scale_lineEdit.setText(self._generator_model.getScaleText())
         self._ui.displayAxes_checkBox.setChecked(self._generator_model.isDisplayAxes())
@@ -371,9 +411,13 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._marker_mode_active = True
             self._ui.sceneviewer_widget._model = self._fiducial_marker_model
             self._original_mousePressEvent = self._ui.sceneviewer_widget.mousePressEvent
+            self._ui.sceneviewer_widget.original_mousePressEvent = self._ui.sceneviewer_widget.mousePressEvent
+            self._ui.sceneviewer_widget.plane_model_temp = self._plane_model
+
             self._ui.sceneviewer_widget._calculatePointOnPlane = types.MethodType(_calculatePointOnPlane, self._ui.sceneviewer_widget)
             self._ui.sceneviewer_widget.mousePressEvent = types.MethodType(mousePressEvent, self._ui.sceneviewer_widget)
             self._model.printLog()
+
 
     def keyReleaseEvent(self, event):
         if self._marker_mode_active:
@@ -383,14 +427,54 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.sceneviewer_widget.mousePressEvent = self._original_mousePressEvent
 
 
+            #TESTING ADDING ANOTHER QtGuiWindow
+
+
+
+
+
 def mousePressEvent(self, event):
     if self._active_button != QtCore.Qt.NoButton:
         return
 
     if (event.modifiers() & QtCore.Qt.CTRL) and event.button() == QtCore.Qt.LeftButton:
         point_on_plane = self._calculatePointOnPlane(event.x(), event.y())
+        print('Location of click (x,y): (' + str(event.x()) + ', ' + str(event.y()) +')')
+        node = self.getNearestNode(event.x(), event.y())
+        if node.isValid():
+            nodeid = str(node.getIdentifier())
+            print('You clicked on Node #' + nodeid)
+            alert = 'EEG plot for Node #' + nodeid
+            pw = pg.plot(pen='r', symbol='o', title=alert,
+                    labels={'left': f'EEG value of node {nodeid}', 'bottom': 'time in seconds'})
+
+
+            # Blackfynn login
+            if 'data' not in locals():
+                self.blackfynn.set_params(channels=f'LG{nodeid}')
+                self.blackfynn.set_api_key_login()
+                data = self.blackfynn.get()
+            if data['error'] is not 0:
+                pw.setTitle(title=data['error'])
+                pw.plot()
+            else:
+
+                #plot data
+                if 'y' in data:
+                    pw.plot(data['x'], data['y'], pen='r', symbol='o', title=f'EEG values from {nodeid} (LG{nodeid})',
+                            labels={'left': f'EEG value of node {nodeid}', 'bottom': 'time in seconds'})
+                else:
+                    pw.setTitle(title=f'ERROR: COULD NOT FIND NODE DATA FOR LG{nodeid}')
+                    pw.plot()
+
         if point_on_plane is not None:
             self._model.setNodeLocation(point_on_plane)
+
+        # return sceneviewers 'mouspressevent' function to its version for navigation
+        self._model = self.plane_model_temp
+        self._calculatePointOnPlane = None
+        self.mousePressEvent = self.original_mousePressEvent
+    return [event.x(), event.y()]
 
 
 def _calculatePointOnPlane(self, x, y):
@@ -400,5 +484,7 @@ def _calculatePointOnPlane(self, x, y):
     near_plane_point = self.unproject(x, -y, 1.0)
     plane_point, plane_normal = self._model.getPlaneDescription()
     point_on_plane = calculateLinePlaneIntersection(near_plane_point, far_plane_point, plane_point, plane_normal)
-
+    #print(point_on_plane)
     return point_on_plane
+
+
