@@ -49,7 +49,9 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._makeConnections()
 
         self._ui.sceneviewer_widget.blackfynn = BlackfynnGet()
-
+        self._ui.sceneviewer_widget.pw = None
+        self._ui.sceneviewer_widget.data = {}
+        self.y_scaled = 0
 
     def _graphicsInitialized(self):
         """
@@ -71,6 +73,8 @@ class MeshGeneratorWidget(QtGui.QWidget):
             sceneviewer.setLookatParametersNonSkew([2.0, -2.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0])
             sceneviewer.setTransparencyMode(sceneviewer.TRANSPARENCY_MODE_SLOW)
             self._viewAll()
+
+
 
     def _sceneChanged(self):
         sceneviewer = self._ui.sceneviewer_widget.getSceneviewer()
@@ -131,6 +135,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.displayFiducialMarkers_checkBox.clicked.connect(self._displayFiducialMarkersClicked)
         self._ui.fiducialMarker_comboBox.currentIndexChanged.connect(self._fiducialMarkerChanged)
         self._ui.submitButton.clicked.connect(self._submitClicked)
+        self._ui.displayEEGAnimation_checkBox.clicked.connect(self._EEGAnimationClicked)
         # self._ui.treeWidgetAnnotation.itemSelectionChanged.connect(self._annotationSelectionChanged)
         # self._ui.treeWidgetAnnotation.itemChanged.connect(self._annotationItemChanged)
 
@@ -222,9 +227,47 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._timePlayStopClicked()
         else:
             self._ui.timeValue_doubleSpinBox.setValue(value)
-            if self._ui.displayEEGAnimation_checkBox.isChecked():
-                self._sceneAnimate()
+            if self._ui.sceneviewer_widget.pw is not None:
+                self._ui.sceneviewer_widget.line.setValue(round(value, 3))
+            if self._ui.displayEEGAnimation_checkBox.isChecked() and self.y_scaled.any() is not 0:
+                self._generator_model.updateEEGcolours(self.y_scaled[self.currentFrame(value)])
+                print(self.y_scaled[self.currentFrame(value)])
         self._ui.timeValue_doubleSpinBox.blockSignals(False)
+
+    def scaleData(self):
+        # scale the data
+        numFrames = 101
+        yt = np.add(y, np.amin(y) * -1)
+        x = np.linspace(0, 1, len(yt))
+        xterp = np.linspace(0, 1, numFrames)
+        yterp = np.interp(xterp, x, yt)
+        y_scaled = np.multiply(yterp, 1 / np.amax(yterp))
+        self.y_scaled = y_scaled
+
+    def _EEGAnimationClicked(self):
+        if self._ui.sceneviewer_widget.data:
+            # scale the data
+            numFrames = 101
+            y = np.array(self._ui.sceneviewer_widget.data['y'])
+            yt = np.add(y, np.amin(y) * -1)
+            x = np.linspace(0, 1, len(yt))
+            xterp = np.linspace(0, 1, numFrames)
+            yterp = np.interp(xterp, x, yt)
+            y_scaled = np.multiply(yterp, 1 / np.amax(yterp))
+            self.y_scaled = y_scaled
+
+    def currentFrame(self, value):
+        frame_count = self._plane_model.getFrameCount()
+        frame_vals = np.linspace(0,4,frame_count)
+        currentFrame = (np.abs(frame_vals - value)).argmin()
+        return currentFrame
+
+    def find_nearest(array, value):
+        idx = np.searchsorted(array, value, side="left")
+        if idx > 0 and (idx == len(array) or math.fabs(value - array[idx - 1]) < math.fabs(value - array[idx])):
+            return array[idx - 1]
+        else:
+            return array[idx]
 
     def _updateFrameIndex(self, value):
         self._ui.frameIndex_spinBox.blockSignals(True)
@@ -269,6 +312,12 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.sceneviewer_widget.blackfynn.api_token = self._ui.api_key.text()
             self._ui.sceneviewer_widget.blackfynn.api_secret = self._ui.api_secret.text()
             self._ui.api_secret.setText('***************************')
+        self.EEGdisplay
+
+    def EEFdisplay(self):
+        imv = pg.ImageView()
+        imv.show
+        imv.setImage()
 
 
     def _displayImagePlaneClicked(self):
@@ -416,7 +465,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
 
             self._ui.sceneviewer_widget._calculatePointOnPlane = types.MethodType(_calculatePointOnPlane, self._ui.sceneviewer_widget)
             self._ui.sceneviewer_widget.mousePressEvent = types.MethodType(mousePressEvent, self._ui.sceneviewer_widget)
-            self._model.printLog()
+            self._ui.sceneviewer_widget.time = self._model._current_time
 
 
     def keyReleaseEvent(self, event):
@@ -448,29 +497,43 @@ def mousePressEvent(self, event):
             pw = pg.plot(pen='r', symbol='o', title=alert,
                     labels={'left': f'EEG value of node {nodeid}', 'bottom': 'time in seconds'})
 
-
+            electrodeLoaded = False
             # Blackfynn login
-            if 'data' not in locals():
-                self.blackfynn.set_params(channels=f'LG{nodeid}')
+            if self.data:
+                try:
+                    self.data['y'] = self.data['cache'][f'LG{nodeid}']
+                    electrodeLoaded = True
+                except: KeyError
+            if not electrodeLoaded:
+                self.blackfynn.set_params(channels=f'LG{nodeid}', window_from_start=4)
                 self.blackfynn.set_api_key_login()
                 data = self.blackfynn.get()
-            if data['error'] is not 0:
-                pw.setTitle(title=data['error'])
-                pw.plot()
-            else:
+
+                if data['error'] is not 0:
+                    pw.setTitle(title=data['error'])
+                    pw.plot()
+                    self._model = self.plane_model_temp
+                    self._calculatePointOnPlane = None
+                    self.mousePressEvent = self.original_mousePressEvent
+                    return [event.x(), event.y()]
+                else:
+                    self.data = data
 
                 #plot data
-                if 'y' in data:
-                    pw.plot(data['x'], data['y'], pen='r', symbol='o', title=f'EEG values from {nodeid} (LG{nodeid})',
-                            labels={'left': f'EEG value of node {nodeid}', 'bottom': 'time in seconds'})
-                else:
-                    pw.setTitle(title=f'ERROR: COULD NOT FIND NODE DATA FOR LG{nodeid}')
-                    pw.plot()
+            if 'y' in self.data:
+                pw.plot(self.data['x'], self.data['y'], pen='b', symbol='o', title=f'EEG values from {nodeid} (LG{nodeid})',
+                        labels={'left': f'EEG value of node {nodeid}', 'bottom': 'time in seconds'})
+                self.line = pw.addLine(x=self.time, pen='r')  # show current time
+
+
+
+            self.pw = pw
 
         if point_on_plane is not None:
             self._model.setNodeLocation(point_on_plane)
 
         # return sceneviewers 'mouspressevent' function to its version for navigation
+
         self._model = self.plane_model_temp
         self._calculatePointOnPlane = None
         self.mousePressEvent = self.original_mousePressEvent

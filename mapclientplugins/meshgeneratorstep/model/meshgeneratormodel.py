@@ -51,6 +51,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         }
         self._discoverAllMeshTypes()
 
+
     def _discoverAllMeshTypes(self):
         scaffoldmaker = Scaffoldmaker()
         self._meshTypes = scaffoldmaker.getMeshTypes()
@@ -180,10 +181,8 @@ class MeshGeneratorModel(MeshAlignmentModel):
         #create EEG subset
         eeg_group.removeAllNodes()
 
-        eeg_coord = [[1, 1, 1],
-                     [1, .5, .5],
-                     [0, .4, .4],
-                     [1, .2, .2]]
+        eeg_coord = [[.5, .5, 0],
+                     [0, 0, .4]]
 
         for i in range(len(eeg_coord)):
             eegNode = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -211,6 +210,13 @@ class MeshGeneratorModel(MeshAlignmentModel):
         self._scale = scale
         self._settings['scale'] = scaleText
         return changed
+
+    def updateEEGcolours(self, value):
+        fm = self._region.getFieldmodule()
+        scene = self._region.getScene()
+        displaySurface = scene.findGraphicsByName('displaySurfaces')
+        constant = fm.createFieldConstant(value)
+        displaySurface.setDataField(constant)
 
     def setScaleText(self, scaleTextIn):
         if self._parseScaleText(scaleTextIn):
@@ -433,7 +439,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         nodeNumbers = scene.createGraphicsPoints()
         nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodeNumbers.setCoordinateField(coordinates)
-
+        nodeNumbers.setVisibilityFlag(self.isDisplayNodeNumbers())
 
         # Add EEG nodes
         fng = fm.createFieldNodeGroup(fm.findNodesetByName('nodes'))
@@ -446,10 +452,15 @@ class MeshGeneratorModel(MeshAlignmentModel):
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
         pointattr.setBaseSize([.05, .05, .05])
 
-
+        # Add Spectrum
+        spcmod = scene.getSpectrummodule()
+        spec = spcmod.getDefaultSpectrum()
+        constant = fm.createFieldConstant(.8)
+        nodeNumbers.setSpectrum(spec)
+        nodeNumbers.setDataField(constant)
         nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('white'))
         nodeNumbers.setName('displayNodeNumbers')
-        nodeNumbers.setVisibilityFlag(self.isDisplayNodeNumbers())
+
 
 
         elementNumbers = scene.createGraphicsPoints()
@@ -468,6 +479,8 @@ class MeshGeneratorModel(MeshAlignmentModel):
         surfacesMaterial = self._materialmodule.findMaterialByName('trans_blue' if self.isDisplaySurfacesTranslucent() else 'solid_blue')
         surfaces.setMaterial(surfacesMaterial)
         surfaces.setName('displaySurfaces')
+        surfaces.setSpectrum(spec)
+        surfaces.setDataField(constant)
         surfaces.setVisibilityFlag(self.isDisplaySurfaces())
 
         # derivative arrow width is based on shortest non-zero side
@@ -513,11 +526,6 @@ class MeshGeneratorModel(MeshAlignmentModel):
         xiAxes.setMaterial(self._materialmodule.findMaterialByName('yellow'))
         xiAxes.setName('displayXiAxes')
         xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
-
-        # -----create Node for EEG starts here------ (pasted from scaffoldmaker)
-
-        # -----create Node for EEG ends here------ (pasted from scaffoldmaker)
-
         self.applyAlignment()
         scene.endChange()
 
