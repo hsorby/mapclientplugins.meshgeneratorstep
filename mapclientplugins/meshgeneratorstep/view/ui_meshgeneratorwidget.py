@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'meshgeneratorwidgetJesseNew.ui'
+# Form implementation generated from reading ui file 'meshgeneratorwidgetEEGworking.ui'
 #
-# Created: Fri Jun 22 16:22:05 2018
+# Created: Fri Jun 29 13:26:32 2018
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -178,13 +178,13 @@ class Ui_MeshGeneratorWidget(object):
         self.time_groupBox.setObjectName("time_groupBox")
         self.gridLayout_4 = QtGui.QGridLayout(self.time_groupBox)
         self.gridLayout_4.setObjectName("gridLayout_4")
-        self.timeLoop_checkBox = QtGui.QCheckBox(self.time_groupBox)
-        self.timeLoop_checkBox.setObjectName("timeLoop_checkBox")
-        self.gridLayout_4.addWidget(self.timeLoop_checkBox, 1, 2, 1, 1)
         self.timeValue_doubleSpinBox = QtGui.QDoubleSpinBox(self.time_groupBox)
         self.timeValue_doubleSpinBox.setMaximum(12000.0)
         self.timeValue_doubleSpinBox.setObjectName("timeValue_doubleSpinBox")
         self.gridLayout_4.addWidget(self.timeValue_doubleSpinBox, 0, 1, 1, 1)
+        self.timeLoop_checkBox = QtGui.QCheckBox(self.time_groupBox)
+        self.timeLoop_checkBox.setObjectName("timeLoop_checkBox")
+        self.gridLayout_4.addWidget(self.timeLoop_checkBox, 1, 2, 1, 1)
         self.timeValue_label = QtGui.QLabel(self.time_groupBox)
         self.timeValue_label.setObjectName("timeValue_label")
         self.gridLayout_4.addWidget(self.timeValue_label, 0, 0, 1, 1)
@@ -348,6 +348,24 @@ class Ui_MeshGeneratorWidget(object):
         sizePolicy.setHeightForWidth(self.sceneviewer_widget.sizePolicy().hasHeightForWidth())
         self.sceneviewer_widget.setSizePolicy(sizePolicy)
         self.sceneviewer_widget.setObjectName("sceneviewer_widget")
+        self.dockWidget_2 = QtGui.QDockWidget(self.sceneviewer_widget)
+        self.dockWidget_2.setGeometry(QtCore.QRect(0, 0, 221, 201))
+        self.dockWidget_2.setObjectName("dockWidget_2")
+        self.dockWidgetContents_3 = QtGui.QWidget()
+        self.dockWidgetContents_3.setObjectName("dockWidgetContents_3")
+        self.label = QtGui.QLabel(self.dockWidgetContents_3)
+        self.label.setGeometry(QtCore.QRect(5, 3, 211, 171))
+        self.label.setObjectName("label")
+        self.LG3 = QtGui.QPushButton(self.dockWidgetContents_3)
+        self.LG3.setGeometry(QtCore.QRect(40, 80, 16, 23))
+        self.LG3.setObjectName("LG3")
+        self.LG4 = QtGui.QPushButton(self.dockWidgetContents_3)
+        self.LG4.setGeometry(QtCore.QRect(70, 80, 21, 23))
+        self.LG4.setObjectName("LG4")
+        self.LG10 = QtGui.QPushButton(self.dockWidgetContents_3)
+        self.LG10.setGeometry(QtCore.QRect(100, 80, 21, 23))
+        self.LG10.setObjectName("LG10")
+        self.dockWidget_2.setWidget(self.dockWidgetContents_3)
         self.horizontalLayout.addWidget(self.sceneviewer_widget)
 
         self.retranslateUi(MeshGeneratorWidget)
@@ -405,5 +423,11 @@ class Ui_MeshGeneratorWidget(object):
         self.timeSeries_lineInput.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "name", None, QtGui.QApplication.UnicodeUTF8))
         self.viewAll_button.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "View All", None, QtGui.QApplication.UnicodeUTF8))
         self.done_button.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Done", None, QtGui.QApplication.UnicodeUTF8))
-
+        self.label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "<html><head/><body><p align=\"center\"><img src=\"eeg.png.png\"/></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.LG3.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "PushButton", None, QtGui.QApplication.UnicodeUTF8))
+        self.LG4.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "PushButton", None, QtGui.QApplication.UnicodeUTF8))
+        self.LG10.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "PushButton", None, QtGui.QApplication.UnicodeUTF8))
+        # self.LG3.hide()
+        # self.LG4.hide()
+        # self.LG10.hide()
 from opencmiss.zincwidgets.alignmentsceneviewerwidget import AlignmentSceneviewerWidget

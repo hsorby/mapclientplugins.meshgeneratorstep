@@ -51,6 +51,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.sceneviewer_widget.blackfynn = BlackfynnGet()
         self._ui.sceneviewer_widget.pw = None
         self._ui.sceneviewer_widget.data = {}
+        self.blackfynn_loaded = False
         self.y_scaled = 0
 
     def _graphicsInitialized(self):
@@ -138,6 +139,13 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.displayEEGAnimation_checkBox.clicked.connect(self._EEGAnimationClicked)
         # self._ui.treeWidgetAnnotation.itemSelectionChanged.connect(self._annotationSelectionChanged)
         # self._ui.treeWidgetAnnotation.itemChanged.connect(self._annotationItemChanged)
+
+        # currently not able to loop it (will have to do later
+        self._ui.LG3.clicked.connect(self._lg3)
+        self._ui.LG4.clicked.connect(self._lg4)
+        self._ui.LG10.clicked.connect(self._lg10)
+
+
 
     def _fiducialMarkerChanged(self):
         self._fiducial_marker_model.setActiveMarker(self._ui.fiducialMarker_comboBox.currentText())
@@ -312,12 +320,25 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.sceneviewer_widget.blackfynn.api_token = self._ui.api_key.text()
             self._ui.sceneviewer_widget.blackfynn.api_secret = self._ui.api_secret.text()
             self._ui.api_secret.setText('***************************')
-        self.EEGdisplay
+            self.blackfynn_loaded = True
 
-    def EEFdisplay(self):
-        imv = pg.ImageView()
-        imv.show
-        imv.setImage()
+
+    def _lg3(self):
+        self.EEGSelectionDisplay(3)
+    def _lg4(self):
+        self.EEGSelectionDisplay(4)
+    def _lg10(self):
+        self.EEGSelectionDisplay(10)
+
+    def EEGSelectionDisplay(self, key):
+
+        print(f'key {key} clicked!')
+        if self._ui.sceneviewer_widget.data:
+            self._ui.sceneviewer_widget.pw.clear()
+            self._ui.sceneviewer_widget.pw.plot(self._ui.sceneviewer_widget.data['x'], self._ui.sceneviewer_widget.data['cache'][f'LG{key}'], pen='b', symbol='o', title=f'EEG values from {key} (LG{key})',
+                    labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
+            self._ui.sceneviewer_widget.line = self._ui.sceneviewer_widget.pw.addLine(x=self._ui.sceneviewer_widget.time, pen='r')  # show current time
+
 
 
     def _displayImagePlaneClicked(self):
