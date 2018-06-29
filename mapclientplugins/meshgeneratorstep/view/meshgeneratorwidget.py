@@ -144,6 +144,12 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.LG3.clicked.connect(self._lg3)
         self._ui.LG4.clicked.connect(self._lg4)
         self._ui.LG10.clicked.connect(self._lg10)
+        self._ui.LG3.setText('')
+        self._ui.LG3.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+        self._ui.LG4.setText('')
+        self._ui.LG4.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+        self._ui.LG10.setText('')
+        self._ui.LG10.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
 
 
@@ -320,6 +326,9 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.sceneviewer_widget.blackfynn.api_token = self._ui.api_key.text()
             self._ui.sceneviewer_widget.blackfynn.api_secret = self._ui.api_secret.text()
             self._ui.api_secret.setText('***************************')
+            self._ui.sceneviewer_widget.blackfynn.set_params(channels='LG4', window_from_start=4)
+            self._ui.sceneviewer_widget.blackfynn.set_api_key_login()
+            self._ui.sceneviewer_widget.data = self._ui.sceneviewer_widget.blackfynn.get()
             self.blackfynn_loaded = True
 
 

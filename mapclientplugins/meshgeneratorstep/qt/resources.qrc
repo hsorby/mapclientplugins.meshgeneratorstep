@@ -1,6 +1,6 @@
-
 <RCC>
   <qresource prefix="meshgeneratorstep">
     <file>images/model-viewer.png</file>
+    <file>eeg.png.png</file>
   </qresource>
 </RCC>
