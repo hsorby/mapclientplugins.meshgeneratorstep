@@ -447,7 +447,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         ndsg = fng.getNodesetGroup()
         self.createEEGPoints(region, ndsg)
         pointattr = nodeNumbers.getGraphicspointattributes()
-        pointattr.setLabelText(1, 'EEG Node')
+        pointattr.setLabelText(1, 'ECG Node')
         pointattr.setLabelOffset([1.5, 1.5, 0])
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
         pointattr.setBaseSize([.05, .05, .05])
@@ -455,8 +455,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         # Add Spectrum
         spcmod = scene.getSpectrummodule()
         spec = spcmod.getDefaultSpectrum()
-        constant = fm.createFieldConstant(.8)
-        nodeNumbers.setSpectrum(spec)
+        constant = fm.createFieldConstant(0)
         nodeNumbers.setDataField(constant)
         nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('white'))
         nodeNumbers.setName('displayNodeNumbers')

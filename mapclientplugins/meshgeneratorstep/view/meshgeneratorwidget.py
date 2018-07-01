@@ -344,7 +344,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         print(f'key {key} clicked!')
         if self._ui.sceneviewer_widget.data:
             self._ui.sceneviewer_widget.pw.clear()
-            self._ui.sceneviewer_widget.pw.plot(self._ui.sceneviewer_widget.data['x'], self._ui.sceneviewer_widget.data['cache'][f'LG{key}'], pen='b', symbol='o', title=f'EEG values from {key} (LG{key})',
+            self._ui.sceneviewer_widget.pw.plot(self._ui.sceneviewer_widget.data['x'], self._ui.sceneviewer_widget.data['cache'][f'LG{key}'], pen='b', title=f'EEG values from {key} (LG{key})',
                     labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
             self._ui.sceneviewer_widget.line = self._ui.sceneviewer_widget.pw.addLine(x=self._ui.sceneviewer_widget.time, pen='r')  # show current time
 
@@ -551,7 +551,7 @@ def mousePressEvent(self, event):
 
                 #plot data
             if 'y' in self.data:
-                pw.plot(self.data['x'], self.data['y'], pen='b', symbol='o', title=f'EEG values from {nodeid} (LG{nodeid})',
+                pw.plot(self.data['x'], self.data['y'], pen='b', title=f'EEG values from {nodeid} (LG{nodeid})',
                         labels={'left': f'EEG value of node {nodeid}', 'bottom': 'time in seconds'})
                 self.line = pw.addLine(x=self.time, pen='r')  # show current time
 
