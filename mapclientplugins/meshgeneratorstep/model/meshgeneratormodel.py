@@ -166,7 +166,10 @@ class MeshGeneratorModel(MeshAlignmentModel):
     def getScaleText(self):
         return self._settings['scale']
 
-    def createEEGPoints(self, region, eeg_group):
+
+
+
+    def createEEGspectrum(self):
         fm = region.getFieldmodule()
         cache = fm.createFieldcache()
         coordinates = fm.findFieldByName('coordinates')
@@ -177,19 +180,6 @@ class MeshGeneratorModel(MeshAlignmentModel):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodeIdentifier = nodes.getSize() + 1
 
-
-        #create EEG subset
-        eeg_group.removeAllNodes()
-
-        eeg_coord = [[.5, .5, 0],
-                     [0, 0, .4]]
-
-        for i in range(len(eeg_coord)):
-            eegNode = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(eegNode)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, eeg_coord[i])
-            eeg_group.addNode(eegNode)
-            nodeIdentifier += 1
 
     def _parseScaleText(self, scaleTextIn):
         """
@@ -399,6 +389,46 @@ class MeshGeneratorModel(MeshAlignmentModel):
         if self._sceneChangeCallback is not None:
             self._sceneChangeCallback()
 
+    # mesh = fm.findMeshByName('mesh2d')
+    # const2 = fm.createFieldConstant([.5, .5, .4])
+    # coordinates = fm.findFieldByName('coordinates')
+    # findMeshLoc = fm.createFieldFindMeshLocation(coordinates, coordinates, mesh)
+
+    def updateEEGnodeColours(self, node, value):
+        for i in range(len(self.ndsg)):
+            if self.ndsg[i].contiansNode(node):
+                self.pointattrList[i].setBaseSize([value,value,value])
+
+
+        fm = self._region.getFieldmodule()
+        scene = self._region.getScene()
+        displaySurface = scene.findGraphicsByName('displaySurfaces')
+        constant = fm.createFieldConstant(value)
+        displaySurface.setDataField(constant)
+
+
+    def createEEGPoints(self, region, eeg_group, eeg_coord, i):
+        fm = region.getFieldmodule()
+        cache = fm.createFieldcache()
+        coordinates = fm.findFieldByName('coordinates')
+        coordinates = coordinates.castFiniteElement()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+
+
+        #create EEG subset
+        eeg_group.removeAllNodes()
+
+        eegNode = nodes.createNode(nodes.getSize() + i + 1, nodetemplate)
+        cache.setNode(eegNode)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, eeg_coord[i])
+        eeg_group.addNode(eegNode)
+        print(1)
+
+
+
     def _createGraphics(self, region):
         # Node numbers are generated here
         fm = region.getFieldmodule()
@@ -436,21 +466,43 @@ class MeshGeneratorModel(MeshAlignmentModel):
         pointattr = nodeNumbers.getGraphicspointattributes()
         pointattr.setLabelField(cmiss_number)
 
-        nodeNumbers = scene.createGraphicsPoints()
-        nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodeNumbers.setCoordinateField(coordinates)
+
         nodeNumbers.setVisibilityFlag(self.isDisplayNodeNumbers())
 
         # Add EEG nodes
-        fng = fm.createFieldNodeGroup(fm.findNodesetByName('nodes'))
-        nodeNumbers.setSubgroupField(fng)
-        ndsg = fng.getNodesetGroup()
-        self.createEEGPoints(region, ndsg)
-        pointattr = nodeNumbers.getGraphicspointattributes()
-        pointattr.setLabelText(1, 'ECG Node')
-        pointattr.setLabelOffset([1.5, 1.5, 0])
-        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-        pointattr.setBaseSize([.05, .05, .05])
+
+        eeg_coord = [[.5, 0.5, 0],
+                     [0, 0.5, 0],
+                     [-.5, 0.5, 0],
+                     [.5, 0, 0],
+                     [0, 0, 0],
+                     [-.5, 0, 0],
+                     [.5, -.5, 0],
+                     [0, -.5, 0],
+                     [-.5, -.5, 0]]
+
+        for i in range(len(eeg_coord)):
+            eeg_coord[i][0] = eeg_coord[i][0] + .5
+            eeg_coord[i][1] = eeg_coord[i][1] + .5
+
+
+
+        self.ndsg = []
+        self.pointattrList = []
+        for i in range(len(eeg_coord)):
+            nodeNumbers = scene.createGraphicsPoints()
+            nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            nodeNumbers.setCoordinateField(coordinates)
+            fng = fm.createFieldNodeGroup(fm.findNodesetByName('nodes'))
+            self.ndsg.append(fng.getNodesetGroup())
+            self.createEEGPoints(region, self.ndsg[i], eeg_coord, i)
+            nodeNumbers.setSubgroupField(fng)
+            self.pointattrList.append(nodeNumbers.getGraphicspointattributes())
+            self.pointattrList[i].setLabelText(1, f'ECG Node {i}')
+            self.pointattrList[i].setLabelOffset([1.5, 1.5, 0])
+            self.pointattrList[i].setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
+            self.pointattrList[i].setBaseSize([.05, .05, .05])
+            print(f'i: {i}  name{ndsg[i].getName()}')
 
         # Add Spectrum
         spcmod = scene.getSpectrummodule()
@@ -498,7 +550,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
             nodeDerivatives = scene.createGraphicsPoints()
             nodeDerivatives.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
             nodeDerivatives.setCoordinateField(coordinates)
-            pointattr = nodeDerivatives.getGraphicspointattributes()
+            self.pointattr = nodeDerivatives.getGraphicspointattributes()
             pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_ARROW_SOLID)
             pointattr.setOrientationScaleField(nodeDerivativeFields[i])
             pointattr.setBaseSize([0.0, width, width])
