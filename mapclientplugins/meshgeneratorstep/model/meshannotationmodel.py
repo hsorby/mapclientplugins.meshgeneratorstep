@@ -23,6 +23,14 @@ class AnnotatedMesh3DHeartVentriclesWithBase1(Annotation):
         self._data = {'LV apex': 46, 'RV apex': 112, 'LAD CFX junction': 40, 'RV wall extent': 118, }
 
 
+class AnnotatedMesh3DHeartVentriclesWithBase2(Annotation):
+    name = '3D Heart Ventricles with Base 2'
+
+    def __init__(self):
+        super(AnnotatedMesh3DHeartVentriclesWithBase2, self).__init__()
+        self._data = {'LV apex': 62, 'RV apex': 167, 'LAD CFX junction': 54, 'RV wall extent': 191, }
+
+
 def mkInst(cls, *args, **kwargs):
     try:
         return globals()[cls](*args, **kwargs)
@@ -37,6 +45,7 @@ class MeshAnnotationModel(object):
 
     def __init__(self):
         self._mesh_type = ''
+        self._annotations = []
 
     def setMeshTypeByName(self, name):
         self._mesh_type = name
@@ -54,3 +63,26 @@ class MeshAnnotationModel(object):
             return annotation_class.getLabels()
 
         return []
+
+    def setMeshAnnotation(self, annotations):
+        print('set annotation labels')
+        self._annotations = annotations
+        for annotation_group in annotations:
+            annotation_group.addSubelements()
+            print(annotation_group.getName())
+            print(annotation_group.getLyphID())
+            print(annotation_group.getFMANumber())
+
+    def getAnnotationLabels(self):
+        labels = []
+        for annotation in self._annotations:
+            labels.append((annotation.getName(), annotation.getFMANumber()))
+
+        return labels
+
+    def getAnnotationGroup(self, fmaTerm):
+        for annotation in self._annotations:
+            if fmaTerm == annotation.getFMANumber():
+                return annotation.getGroup()
+
+        return None

@@ -24,14 +24,14 @@ class MeshGeneratorModel(MeshAlignmentModel):
     Framework for generating meshes of a number of types, with mesh type specific options
     """
 
-    def __init__(self, region, material_module):
+    def __init__(self, region, material_module, annotation_model):
         super(MeshGeneratorModel, self).__init__()
         self._region_name = "generated_mesh"
         self._parent_region = region
         self._materialmodule = material_module
         self._region = None
         self._sceneChangeCallback = None
-        self._annotation_groups = None
+        self._annotation_model = annotation_model
         self._deleteElementRanges = []
         self._scale = [ 1.0, 1.0, 1.0 ]
         self._settings = {
@@ -82,6 +82,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
                 self._currentMeshType = meshType
                 self._settings['meshTypeName'] = self._currentMeshType.getName()
                 self._settings['meshTypeOptions'] = self._currentMeshType.getDefaultOptions()
+                self._annotation_model.setMeshTypeByName(self._settings['meshTypeName'])
                 self._generateMesh()
 
     def getMeshTypeOrderedOptionNames(self):
@@ -336,7 +337,8 @@ class MeshGeneratorModel(MeshAlignmentModel):
         fm.beginChange()
         # fmaIds = self._currentMeshType.getAnnotationGroupNames()
         # Scaffoldmaker.defineAnnotationGroupFields(fm, fmaIds)
-        self._annotation_groups = self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
+        annotation_groups = self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
+        self._annotation_model.setMeshAnnotation(annotation_groups)
         # loggerMessageCount = logger.getNumberOfMessages()
         # if loggerMessageCount > 0:
         #     for i in range(1, loggerMessageCount + 1):
@@ -416,7 +418,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         axes = scene.createGraphicsPoints()
         pointattr = axes.getGraphicspointattributes()
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_AXES_XYZ)
-        pointattr.setBaseSize([1.0,1.0,1.0])
+        pointattr.setBaseSize([1.0, 1.0, 1.0])
         axes.setMaterial(self._materialmodule.findMaterialByName('grey50'))
         axes.setName('displayAxes')
         axes.setVisibilityFlag(self.isDisplayAxes())
@@ -496,17 +498,6 @@ class MeshGeneratorModel(MeshAlignmentModel):
         xiAxes.setName('displayXiAxes')
         xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
         
-#         nodeHighlight = scene.createGraphicsPoints()
-#         nodeHighlight.setSubgroupField(self.highlightField)
-#         nodeHighlight.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
-#         nodeHighlight.setCoordinateField(coordinates)
-#         pointattr = nodeHighlight.getGraphicspointattributes()
-#         #pointattr.setLabelField(cmiss_number)
-#         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-#         pointattr.setBaseSize([0.05])
-#         nodeHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
-#         nodeHighlight.setName('nodeHighlight')
-#         nodeHighlight.setVisibilityFlag(True)
         surfaceHighlight = scene.createGraphicsSurfaces()
         surfaceHighlight.setSubgroupField(self.highlightField)
         surfaceHighlight.setCoordinateField(coordinates)
@@ -522,87 +513,31 @@ class MeshGeneratorModel(MeshAlignmentModel):
         self._highlights[fmaTerm] = self._highlights.get(fmaTerm, False)
         if highlightState and not self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = True
-            print("Model will highlight the domain for: " + fmaTerm)
-            self._highlightDomainGraphics(self._region, fmaTerm, True)
+            # print("Model will highlight the domain for: {0}".format(fmaTerm))
+            groupField = self._annotation_model.getAnnotationGroup(fmaTerm)
+            self._highlightDomainGraphics(self._region, groupField, False)
         elif self._highlights[fmaTerm]:
             self._highlights[fmaTerm] = False
-            print("Model will un-highlight the domain for: " + fmaTerm)
-#         highlightedDomains = []
-#         fm = self._region.getFieldmodule()
-#         fm.beginChange()
-#         #for d in self._highlights:
-#         #    highlightedDomains.append(fm.findFieldByName(d))
-#         self.highlightField = fm.findFieldByName(fmaTerm)
-#         fm.endChange()
+            # print("Model will un-highlight the domain for: {0}".format(fmaTerm))
+            groupField = self._annotation_model.getAnnotationGroup(fmaTerm)
+            self._highlightDomainGraphics(self._region, groupField, True)
 
-    def _highlightDomainGraphics(self, region, domainName, clearHighlights):
-        print("Model will highlight the domain for: " + domainName)
-        # make highlight graphics for the given domain
+    def _highlightDomainGraphics(self, region, sourceGroupField, clearHighlights):
+        # Select or deselect graphics for the given group field.
         fm = region.getFieldmodule()
         fm.beginChange()
-        # not sure why this isn't working...
-        #self.highlightField = fm.findFieldByName(domainName)
-        # so try adding all the elements manually
-        if clearHighlights:
-            self.highlightField.clear()
         mesh3d = fm.findMeshByDimension(3)
-        sourceGroupField = fm.findFieldByName(domainName).castGroup()
         sourceElementGroupField = sourceGroupField.getFieldElementGroup(mesh3d)
         elementGroupField = self.highlightField.getFieldElementGroup(mesh3d)
         if not elementGroupField.isValid():
             elementGroupField = self.highlightField.createFieldElementGroup(mesh3d)
         meshGroup = elementGroupField.getMeshGroup()
-        meshGroup.addElementsConditional(sourceElementGroupField)
+        if clearHighlights:
+            meshGroup.removeElementsConditional(sourceElementGroupField)
+        else:
+            meshGroup.addElementsConditional(sourceElementGroupField)
         fm.endChange()
-        
-#         coordinates = fm.findFieldByName('coordinates')
-#         domainGroupField = fm.findFieldByName(domainName)
-#         notGroup = fm.createFieldNot(domainGroupField)
-#         cmiss_number = fm.findFieldByName('cmiss_number')
-#         scene = region.getScene()
-#         scene.beginChange()
-# #         nodeHighlight = scene.createGraphicsPoints()
-# #         nodeHighlight.setSubgroupField(domainGroupField)
-# #         nodeHighlight.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
-# #         nodeHighlight.setCoordinateField(coordinates)
-# #         pointattr = nodeHighlight.getGraphicspointattributes()
-# #         #pointattr.setLabelField(cmiss_number)
-# #         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-# #         pointattr.setBaseSize([0.05])
-# #         nodeHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
-# #         nodeHighlight.setName('nodeHighlight_' + domainName)
-# #         nodeHighlight.setVisibilityFlag(True)
-#         elementHighlight = scene.createGraphicsPoints()
-#         elementHighlight.setSubgroupField(self.highlightField)
-#         elementHighlight.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
-#         elementHighlight.setCoordinateField(coordinates)
-#         pointattr = elementHighlight.getGraphicspointattributes()
-#         #pointattr.setLabelField(cmiss_number)
-#         pointattr.setLabelText(1, domainName)
-#         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_POINT)
-#         elementHighlight.setMaterial(self._materialmodule.findMaterialByName('cyan'))
-#         elementHighlight.setName('elementHighlight_' + domainName)
-#         elementHighlight.setVisibilityFlag(True)
-#         surfaceHighlight = scene.createGraphicsSurfaces()
-#         surfaceHighlight.setCoordinateField(coordinates)
-#         surfaceHighlight.setRenderPolygonMode(Graphics.RENDER_POLYGON_MODE_SHADED)
-#         #surfaces.setExterior(self.isDisplaySurfacesExterior() if (meshDimension == 3) else False)
-#         surfaceHighlight.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
-#         surfaceHighlight.setName('highlightSurfaces_' + domainName)
-#         surfaceHighlight.setVisibilityFlag(True)
-        
-#         lines = scene.createGraphicsLines()
-#         lines.setSubgroupField(domainGroupField)
-#         lines.setCoordinateField(coordinates)
-#         lineattr = lines.getGraphicslineattributes()
-#         lineattr.setShapeType(Graphicslineattributes.SHAPE_TYPE_CIRCLE_EXTRUSION)
-#         lineattr.setBaseSize(0.05)
-#         lines.setName('highlightLines_' + domainName)
-#         lines.setMaterial(self._materialmodule.findMaterialByName('highlight_material'))
-#         lines.setVisibilityFlag(True)
-        
-#         scene.endChange()
-        
+
     def getOutputModelFilename(self):
         return self._filenameStem + '.ex2'
 

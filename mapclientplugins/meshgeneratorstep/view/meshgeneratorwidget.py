@@ -13,6 +13,9 @@ from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_Me
 from opencmiss.utils.maths import vectorops
 
 
+FMA_ROLE = QtCore.Qt.UserRole + 1
+
+
 class MeshGeneratorWidget(QtGui.QWidget):
 
     def __init__(self, model, parent=None):
@@ -30,10 +33,10 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.sceneviewer_widget.setModel(self._plane_model)
         self._model.registerSceneChangeCallback(self._sceneChanged)
         self._doneCallback = None
+        self._populateAnnotationTree()
         self._populateFiducialMarkersComboBox()
         self._marker_mode_active = False
         self._have_images = False
-        # self._populateAnnotationTree()
         meshTypeNames = self._generator_model.getAllMeshTypeNames()
         for meshTypeName in meshTypeNames:
             self._ui.meshType_comboBox.addItem(meshTypeName)
@@ -105,8 +108,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.displayFiducialMarkers_checkBox.clicked.connect(self._displayFiducialMarkersClicked)
         self._ui.fiducialMarker_comboBox.currentIndexChanged.connect(self._fiducialMarkerChanged)
         self._ui.fiducialMarkerTransform_pushButton.clicked.connect(self._fiducialMarkerTransformClicked)
-        # self._ui.treeWidgetAnnotation.itemSelectionChanged.connect(self._annotationSelectionChanged)
-        # self._ui.treeWidgetAnnotation.itemChanged.connect(self._annotationItemChanged)
+        self._ui.annotation_treeWidget.itemChanged.connect(self._annotationItemChanged)
 
     def _fitToScaffold(self):
         # Get the fiducial marker points and their corresponding mesh points.
@@ -158,10 +160,11 @@ class MeshGeneratorWidget(QtGui.QWidget):
         if fiducial_marker_labels is not None:
             self._ui.fiducialMarker_comboBox.addItems(self._annotation_model.getFiducialMarkerLabels())
 
-    def _createFMAItem(self, parent, text, fma_id):
+    @staticmethod
+    def _createFMAItem(parent, text, fma_id):
         item = QtGui.QTreeWidgetItem(parent)
         item.setText(0, text)
-        item.setData(0, QtCore.Qt.UserRole + 1, fma_id)
+        item.setData(0, FMA_ROLE, fma_id)
         item.setCheckState(0, QtCore.Qt.Unchecked)
         item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsTristate)
 
@@ -185,6 +188,16 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.treeWidgetAnnotation.addTopLevelItem(lsh_item)
         self._ui.treeWidgetAnnotation.addTopLevelItem(apex_item)
         self._ui.treeWidgetAnnotation.addTopLevelItem(vortex_item)
+
+    def _populateAnnotationTree(self):
+        tree = self._ui.annotation_treeWidget
+        tree.setHeaderHidden(True)
+        tree.clear()
+        labels = self._annotation_model.getAnnotationLabels()
+        print('populate annotation tree', labels)
+        for label in labels:
+            item = self._createFMAItem(tree, label[0], label[1])
+            tree.addTopLevelItem(item)
 
     def getModel(self):
         return self._model
@@ -287,7 +300,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def _meshTypeChanged(self, index):
         meshTypeName = self._ui.meshType_comboBox.itemText(index)
         self._generator_model.setMeshTypeByName(meshTypeName)
-        self._annotation_model.setMeshTypeByName(meshTypeName)
         self._fiducial_marker_model.reset()
         self._refreshMeshTypeOptions()
 
@@ -331,11 +343,10 @@ class MeshGeneratorWidget(QtGui.QWidget):
                 lineEdit.editingFinished.connect(callback)
                 layout.addWidget(lineEdit)
 
-        fiducial_markers = self._annotation_model.getFiducialMarkerLabels()
-        self._fiducial_marker_model.reset()
         self._ui.fiducialMarker_comboBox.clear()
-        if fiducial_markers is not None:
-            self._ui.fiducialMarker_comboBox.addItems(fiducial_markers)
+        self._ui.annotation_treeWidget.clear()
+        self._populateAnnotationTree()
+        self._populateFiducialMarkersComboBox()
 
     def _refreshOptions(self):
         self._ui.identifier_label.setText('Identifier:  ' + self._model.getIdentifier())
@@ -408,19 +419,19 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._generator_model.setDisplayXiAxes(self._ui.displayXiAxes_checkBox.isChecked())
 
     def _annotationItemChanged(self, item):
-        fmaTerm = item.data(0, QtCore.Qt.UserRole + 1)
+        fmaTerm = item.data(0, FMA_ROLE)
         # for now we ignore "parent" items and let the tree widget handle selection
         if item.childCount() == 0:
-            self._model.highlightDomain(fmaTerm, item.checkState(0) == QtCore.Qt.Checked)
+            self._generator_model.highlightDomain(fmaTerm, item.checkState(0) == QtCore.Qt.Checked)
         if item.checkState(0) == QtCore.Qt.Checked:
-            print("FMA term selected: " + fmaTerm)
+            print("FMA term selected: {0}".format(fmaTerm))
         elif item.checkState(0) == QtCore.Qt.PartiallyChecked:
-            print("FMA term partially selected: " + fmaTerm)
+            print("FMA term partially selected: {0}".format(fmaTerm))
         else:
-            print("FMA term unselected: " + fmaTerm)
+            print("FMA term unselected: {0}".format(fmaTerm))
 
-        print(item.text(0))
-        print(item.data(0, QtCore.Qt.UserRole + 1))
+        # print(item.text(0))
+        # print(item.data(0, FMA_ROLE))
 
     def _viewAll(self):
         """

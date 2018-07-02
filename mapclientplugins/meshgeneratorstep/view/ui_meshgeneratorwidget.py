@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'qt\meshgeneratorwidget.ui'
 #
-# Created: Wed May 30 11:05:29 2018
+# Created: Mon Jul  2 12:34:46 2018
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -300,6 +300,17 @@ class Ui_MeshGeneratorWidget(object):
         self.sceneviewer_widget.setSizePolicy(sizePolicy)
         self.sceneviewer_widget.setObjectName("sceneviewer_widget")
         self.horizontalLayout.addWidget(self.sceneviewer_widget)
+        self.annotationPanel_dockWidget = QtGui.QDockWidget(MeshGeneratorWidget)
+        self.annotationPanel_dockWidget.setObjectName("annotationPanel_dockWidget")
+        self.dockWidgetContents_2 = QtGui.QWidget()
+        self.dockWidgetContents_2.setObjectName("dockWidgetContents_2")
+        self.gridLayout_5 = QtGui.QGridLayout(self.dockWidgetContents_2)
+        self.gridLayout_5.setObjectName("gridLayout_5")
+        self.annotation_treeWidget = QtGui.QTreeWidget(self.dockWidgetContents_2)
+        self.annotation_treeWidget.setObjectName("annotation_treeWidget")
+        self.gridLayout_5.addWidget(self.annotation_treeWidget, 0, 0, 1, 1)
+        self.annotationPanel_dockWidget.setWidget(self.dockWidgetContents_2)
+        self.horizontalLayout.addWidget(self.annotationPanel_dockWidget)
 
         self.retranslateUi(MeshGeneratorWidget)
         QtCore.QMetaObject.connectSlotsByName(MeshGeneratorWidget)
@@ -346,5 +357,6 @@ class Ui_MeshGeneratorWidget(object):
         self.fiducialMarkerTransform_pushButton.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "To Scaffold", None, QtGui.QApplication.UnicodeUTF8))
         self.viewAll_button.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "View All", None, QtGui.QApplication.UnicodeUTF8))
         self.done_button.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Done", None, QtGui.QApplication.UnicodeUTF8))
+        self.annotationPanel_dockWidget.setWindowTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Annotation Panel", None, QtGui.QApplication.UnicodeUTF8))
 
 from opencmiss.zincwidgets.alignmentsceneviewerwidget import AlignmentSceneviewerWidget

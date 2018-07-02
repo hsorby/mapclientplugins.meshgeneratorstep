@@ -576,6 +576,20 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QDockWidget" name="annotationPanel_dockWidget">
+     <property name="windowTitle">
+      <string>Annotation Panel</string>
+     </property>
+     <widget class="QWidget" name="dockWidgetContents_2">
+      <layout class="QGridLayout" name="gridLayout_5">
+       <item row="0" column="0">
+        <widget class="QTreeWidget" name="annotation_treeWidget"/>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
   </layout>
  </widget>
  <customwidgets>
