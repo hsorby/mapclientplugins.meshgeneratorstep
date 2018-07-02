@@ -65,13 +65,9 @@ class MeshAnnotationModel(object):
         return []
 
     def setMeshAnnotation(self, annotations):
-        print('set annotation labels')
         self._annotations = annotations
         for annotation_group in annotations:
             annotation_group.addSubelements()
-            print(annotation_group.getName())
-            print(annotation_group.getLyphID())
-            print(annotation_group.getFMANumber())
 
     def getAnnotationLabels(self):
         labels = []

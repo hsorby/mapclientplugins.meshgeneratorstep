@@ -194,7 +194,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
         tree.setHeaderHidden(True)
         tree.clear()
         labels = self._annotation_model.getAnnotationLabels()
-        print('populate annotation tree', labels)
         for label in labels:
             item = self._createFMAItem(tree, label[0], label[1])
             tree.addTopLevelItem(item)
@@ -423,15 +422,14 @@ class MeshGeneratorWidget(QtGui.QWidget):
         # for now we ignore "parent" items and let the tree widget handle selection
         if item.childCount() == 0:
             self._generator_model.highlightDomain(fmaTerm, item.checkState(0) == QtCore.Qt.Checked)
-        if item.checkState(0) == QtCore.Qt.Checked:
-            print("FMA term selected: {0}".format(fmaTerm))
-        elif item.checkState(0) == QtCore.Qt.PartiallyChecked:
-            print("FMA term partially selected: {0}".format(fmaTerm))
-        else:
-            print("FMA term unselected: {0}".format(fmaTerm))
 
-        # print(item.text(0))
-        # print(item.data(0, FMA_ROLE))
+        # Debug
+        # if item.checkState(0) == QtCore.Qt.Checked:
+        #     print("FMA term selected: {0}".format(fmaTerm))
+        # elif item.checkState(0) == QtCore.Qt.PartiallyChecked:
+        #     print("FMA term partially selected: {0}".format(fmaTerm))
+        # else:
+        #     print("FMA term unselected: {0}".format(fmaTerm))
 
     def _viewAll(self):
         """
