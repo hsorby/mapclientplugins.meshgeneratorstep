@@ -2,6 +2,8 @@
 Created on 9 Mar, 2018 from mapclientplugins.meshgeneratorstep.
 
 @author: Richard Christie
+
+edited by Jesse in june 2018. Added nodes for EEG points
 """
 
 import string
@@ -12,7 +14,7 @@ from opencmiss.zinc.graphics import Graphics
 from opencmiss.zinc.node import Node
 from scaffoldmaker.scaffoldmaker import Scaffoldmaker
 from scaffoldmaker.utils.zinc_utils import *
-import numpy as np
+
 
 from mapclientplugins.meshgeneratorstep.model.meshalignmentmodel import MeshAlignmentModel
 
@@ -167,6 +169,9 @@ class MeshGeneratorModel(MeshAlignmentModel):
         return self._settings['scale']
 
     def createEEGPoints(self, region, eeg_group):
+        # Creates the EEG points and adds them to eeg_group, (which should be passed in as a subgroup)
+
+        # Initialise Zinc fields
         fm = region.getFieldmodule()
         cache = fm.createFieldcache()
         coordinates = fm.findFieldByName('coordinates')
@@ -178,12 +183,12 @@ class MeshGeneratorModel(MeshAlignmentModel):
         nodeIdentifier = nodes.getSize() + 1
 
 
-        #create EEG subset
-        eeg_group.removeAllNodes()
-
+        # Collect EEG coordinates
         eeg_coord = [[.5, .5, 0],
                      [0, 0, .4]]
 
+        # Create EEG subset
+        eeg_group.removeAllNodes()
         for i in range(len(eeg_coord)):
             eegNode = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(eegNode)
