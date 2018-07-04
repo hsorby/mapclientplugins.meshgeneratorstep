@@ -75,9 +75,9 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-32</y>
+            <y>-295</y>
             <width>316</width>
-            <height>830</height>
+            <height>1070</height>
            </rect>
           </property>
           <property name="sizePolicy">
@@ -503,6 +503,80 @@
                   <property name="text">
                    <string>To Scaffold</string>
                   </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="blackfynn_groupBox">
+               <property name="title">
+                <string>Blackfynn:</string>
+               </property>
+               <layout class="QFormLayout" name="formLayout">
+                <item row="2" column="0">
+                 <widget class="QLabel" name="blackfynnDataset_label">
+                  <property name="text">
+                   <string>Sataset name:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="0">
+                 <widget class="QLabel" name="blackfynnTimeSeries_label">
+                  <property name="text">
+                   <string>Time series name:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="1">
+                 <widget class="QLineEdit" name="blackfynnDataset_lineEdit">
+                  <property name="placeholderText">
+                   <string>name</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="1">
+                 <widget class="QLineEdit" name="blackfynnTimeSeries_lineEdit">
+                  <property name="placeholderText">
+                   <string>name</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0" colspan="2">
+                 <widget class="QCheckBox" name="blackfynnShowEEG_checkBox">
+                  <property name="text">
+                   <string>Show EEG data in animation</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="0" colspan="2">
+                 <widget class="QGroupBox" name="blackfynnCredentials_groupBox">
+                  <property name="title">
+                   <string>Credentials:</string>
+                  </property>
+                  <layout class="QFormLayout" name="formLayout_2">
+                   <item row="2" column="0">
+                    <widget class="QPushButton" name="blackfynnCredentialsLogin_pushButton">
+                     <property name="text">
+                      <string>Login</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0" colspan="2">
+                    <widget class="QLineEdit" name="blackfynnCredentialsAPISecret_lineEdit">
+                     <property name="placeholderText">
+                      <string>API Secret</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0" colspan="2">
+                    <widget class="QLineEdit" name="blackfynnCredentialsAPIKey_lineEdit">
+                     <property name="placeholderText">
+                      <string>API Key</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
                  </widget>
                 </item>
                </layout>

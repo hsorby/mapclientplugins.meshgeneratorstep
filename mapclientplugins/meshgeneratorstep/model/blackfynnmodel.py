@@ -1,0 +1,4 @@
+
+
+class BlackfynnModel(object):
+    pass

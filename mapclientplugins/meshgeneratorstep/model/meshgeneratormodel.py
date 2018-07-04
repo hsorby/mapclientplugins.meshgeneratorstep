@@ -2,6 +2,8 @@
 Created on 9 Mar, 2018 from mapclientplugins.meshgeneratorstep.
 
 @author: Richard Christie
+
+edited by Jesse in june 2018. Added nodes for EEG points
 """
 
 import string
@@ -12,7 +14,7 @@ from opencmiss.zinc.graphics import Graphics
 from opencmiss.zinc.node import Node
 from scaffoldmaker.scaffoldmaker import Scaffoldmaker
 from scaffoldmaker.utils.zinc_utils import *
-import numpy as np
+
 
 from mapclientplugins.meshgeneratorstep.model.meshalignmentmodel import MeshAlignmentModel
 

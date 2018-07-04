@@ -134,6 +134,9 @@ class MasterModel(object):
     def getFramesPerSecond(self):
         return self._settings['frames-per-second']
 
+    def getCurrentTime(self):
+        return self._current_time
+
     def setTimeLoop(self, state):
         self._settings['time-loop'] = state
 
