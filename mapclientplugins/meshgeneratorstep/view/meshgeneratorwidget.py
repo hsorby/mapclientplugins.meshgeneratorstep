@@ -51,7 +51,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         #self._ui.sceneviewer_widget.blackfynn = BlackfynnGet()
         self.blackfynn = BlackfynnGet()
         self._ui.sceneviewer_widget.pw = None
-        self._ui.sceneviewer_widget.data = {}
+        self.data = {}
         self.blackfynn.loaded = False
         self.y_scaled = 0
         self.pw = None
@@ -234,6 +234,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         frame_count = self._plane_model.getFrameCount()
         max_time_value = frame_count / self._ui.framesPerSecond_spinBox.value()
         self.time = self._model._current_time
+
         if value > max_time_value:
             self._ui.timeValue_doubleSpinBox.setValue(max_time_value)
             self._timePlayStopClicked()
@@ -241,22 +242,41 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.timeValue_doubleSpinBox.setValue(value)
             if self.pw is not None:
                 self.line.setValue(round(value, 3)) # adjust time marker
-            if self._ui.displayEEGAnimation_checkBox.isChecked() and self.y_scaled.any() is not 0:
-                self._generator_model.updateEEGcolours(self.y_scaled[self.currentFrame(value)]) # use model to update colours
+            if self._ui.displayEEGAnimation_checkBox.isChecked() and self.data is not False:
+                # use model to update colours
+                self.updateAllNodes(value)
         self._ui.timeValue_doubleSpinBox.blockSignals(False)
+
+    def updateAllNodes(self, time):
+        colours_at_current_time = []
+        for key in self.data['scaled']:
+            colours_at_current_time.append(self.data['scaled'][key][self.currentFrame(time)])
+        self._generator_model.updateEEGnodeColours(colours_at_current_time)
+
+
+
+
+
+    def scaleCacheData(self):
+        tempDict = {}
+        for i, key in enumerate(self.data['cache']):
+            tempDict[str(i)] = self.scaleData(key)
+        self.data['scaled'] = tempDict
+
+    def scaleData(self, key):
+        numFrames = self._plane_model.getFrameCount()
+        y = np.array(self.data['cache'][key])
+        yt = np.add(y, np.amin(y) * -1)
+        x = np.linspace(0, 1, len(yt))
+        xterp = np.linspace(0, 1, numFrames)
+        yterp = np.interp(xterp, x, yt)
+        y_scaled = np.multiply(yterp, 1 / np.amax(yterp))
+        return y_scaled
 
 
     def _EEGAnimationClicked(self):
         if self.data:
-            # scale the data
-            numFrames = self._plane_model.getFrameCount()
-            y = np.array(self.data['y'])
-            yt = np.add(y, np.amin(y) * -1)
-            x = np.linspace(0, 1, len(yt))
-            xterp = np.linspace(0, 1, numFrames)
-            yterp = np.interp(xterp, x, yt)
-            y_scaled = np.multiply(yterp, 1 / np.amax(yterp))
-            self.y_scaled = y_scaled
+            self.scaleCacheData()
 
     def currentFrame(self, value):
         frame_count = self._plane_model.getFrameCount()
@@ -539,6 +559,7 @@ def mousePressEvent(self, event):
         if node.isValid():
             self.foundNode = True
             self.nodeKey = node.getIdentifier()
+            self.node = node
 
         # return sceneviewers 'mouspressevent' function to its version for navigation
 

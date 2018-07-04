@@ -394,38 +394,55 @@ class MeshGeneratorModel(MeshAlignmentModel):
     # coordinates = fm.findFieldByName('coordinates')
     # findMeshLoc = fm.createFieldFindMeshLocation(coordinates, coordinates, mesh)
 
-    def updateEEGnodeColours(self, node, value):
-        for i in range(len(self.ndsg)):
-            if self.ndsg[i].contiansNode(node):
-                self.pointattrList[i].setBaseSize([value,value,value])
-
-
+    def updateEEGnodeColours(self, values):
         fm = self._region.getFieldmodule()
-        scene = self._region.getScene()
-        displaySurface = scene.findGraphicsByName('displaySurfaces')
-        constant = fm.createFieldConstant(value)
-        displaySurface.setDataField(constant)
-
-
-    def createEEGPoints(self, region, eeg_group, eeg_coord, i):
-        fm = region.getFieldmodule()
+        self._scene.beginChange()
         cache = fm.createFieldcache()
+        colour = fm.findFieldByName('colour')
+        colour = colour.castFiniteElement()
+        nodeset = fm.findNodesetByName('nodes')
+        for i in range(self.eegSize):
+            node = nodeset.findNodeByIdentifier(self.numberInModel+1+i)
+            cache.setNode(node)
+            colour.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, values[i])
+        self._scene.endChange()
+
+    def initialiseTimeSequences(self, data):
+        fm = self._region.getFieldmodule()
+        cache = fm.createFieldcache()
+        colour = fm.findFieldByName('colour')
+
+
+    def createEEGPoints(self, region, eeg_group, eeg_coord, i, cache, fe_field):
+        # createEEGPoints creates subgroups of points that use the 'colour' field to change colour
+
+        fm = region.getFieldmodule()
         coordinates = fm.findFieldByName('coordinates')
         coordinates = coordinates.castFiniteElement()
+        colour = fm.findFieldByName('colour')
+        colour = colour.castFiniteElement()
+
+        # Create templates
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodetemplate.defineField(colour)
+        nodetemplate.setValueNumberOfVersions(colour, -1, Node.VALUE_LABEL_VALUE, 1)
 
-
-        #create EEG subset
+        # Assign values for the new EEG subset
         eeg_group.removeAllNodes()
-
-        eegNode = nodes.createNode(nodes.getSize() + i + 1, nodetemplate)
+        eegNode = nodes.createNode(self.numberInModel + i + 1, nodetemplate)
         cache.setNode(eegNode)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, eeg_coord[i])
+        cache.setTime(0)
+        cache.setNode(eegNode)
+        colour.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, .1)
+        cache.clearLocation()
+        cache.setTime(1)
+        cache.setNode(eegNode)
+        colour.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, .9)
         eeg_group.addNode(eegNode)
-        print(1)
 
 
 
@@ -437,7 +454,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         nodeDerivativeFields = [
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS1, 1),
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS2, 1),
-            fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS3, 1)
+            fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS3, 1),
         ]
         elementDerivativeFields = []
         for d in range(meshDimension):
@@ -481,33 +498,55 @@ class MeshGeneratorModel(MeshAlignmentModel):
                      [0, -.5, 0],
                      [-.5, -.5, 0]]
 
-        for i in range(len(eeg_coord)):
-            eeg_coord[i][0] = eeg_coord[i][0] + .5
-            eeg_coord[i][1] = eeg_coord[i][1] + .5
-
-
-
-        self.ndsg = []
-        self.pointattrList = []
-        for i in range(len(eeg_coord)):
-            nodeNumbers = scene.createGraphicsPoints()
-            nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
-            nodeNumbers.setCoordinateField(coordinates)
-            fng = fm.createFieldNodeGroup(fm.findNodesetByName('nodes'))
-            self.ndsg.append(fng.getNodesetGroup())
-            self.createEEGPoints(region, self.ndsg[i], eeg_coord, i)
-            nodeNumbers.setSubgroupField(fng)
-            self.pointattrList.append(nodeNumbers.getGraphicspointattributes())
-            self.pointattrList[i].setLabelText(1, f'ECG Node {i}')
-            self.pointattrList[i].setLabelOffset([1.5, 1.5, 0])
-            self.pointattrList[i].setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-            self.pointattrList[i].setBaseSize([.05, .05, .05])
-            print(f'i: {i}  name{ndsg[i].getName()}')
+        self.eegSize = len(eeg_coord)
+        for i in range(self.eegSize):
+            eeg_coord[i][0] = eeg_coord[i][0]*.8
+            eeg_coord[i][1] = eeg_coord[i][1]*.8
 
         # Add Spectrum
         spcmod = scene.getSpectrummodule()
         spec = spcmod.getDefaultSpectrum()
+        spec.setName('eegColourSpectrum')
         constant = fm.createFieldConstant(0)
+        constant.setName('spectrumConstant')
+
+        cache = fm.createFieldcache()
+
+
+        self.ndsg = []
+        self.pointattrList = []
+        self.spectrumList = []
+        self.nodeColours = []
+        finite_element_field = []
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.numberInModel = nodes.getSize()
+
+        #create all EEG subgroups
+        colour = fm.createFieldFiniteElement(1)
+        colour.setName('colour')
+        colour.setManaged(True)
+        for i in range(len(eeg_coord)):
+            #create
+
+            self.nodeColours.append(scene.createGraphicsPoints())
+            self.nodeColours[i].setFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            self.nodeColours[i].setCoordinateField(coordinates)
+            fng = fm.createFieldNodeGroup(fm.findNodesetByName('nodes'))
+            self.ndsg.append(fng.getNodesetGroup())
+
+            #create new subgroup containing our node
+            self.createEEGPoints(region, self.ndsg[i], eeg_coord, i, cache ,finite_element_field)
+            self.nodeColours[i].setSubgroupField(fng)
+
+            #set attributes for our new node
+            self.nodeColours[i].setSpectrum(spec)
+            self.nodeColours[i].setDataField(colour)
+            self.pointattrList.append(self.nodeColours[i].getGraphicspointattributes())
+            self.pointattrList[i].setLabelText(1, f'ECG Node {i}')
+            self.pointattrList[i].setLabelOffset([1.5, 1.5, 0])
+            self.pointattrList[i].setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
+            self.pointattrList[i].setBaseSize([.05, .05, 2])
+
         nodeNumbers.setDataField(constant)
         nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('white'))
         nodeNumbers.setName('displayNodeNumbers')
