@@ -318,7 +318,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def _fixImagePlaneClicked(self):
         self._plane_model.setImagePlaneFixed(self._ui.fixImagePlane_checkBox.isChecked())
 
-    #blackfynn addition (by jesse)
     def _submitClicked(self):
         if self._ui.api_key.displayText() != 'API Key' and self._ui.api_secret.text() != '***************************':
             self._ui.Login_groupBox.setTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Login details saved, click on a node to load data", None,
@@ -331,24 +330,22 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.sceneviewer_widget.data = self._ui.sceneviewer_widget.blackfynn.get()
             self.blackfynn_loaded = True
 
-
     def _lg3(self):
         self.EEGSelectionDisplay(3)
+
     def _lg4(self):
         self.EEGSelectionDisplay(4)
+
     def _lg10(self):
         self.EEGSelectionDisplay(10)
 
     def EEGSelectionDisplay(self, key):
-
         print(f'key {key} clicked!')
         if self._ui.sceneviewer_widget.data:
             self._ui.sceneviewer_widget.pw.clear()
             self._ui.sceneviewer_widget.pw.plot(self._ui.sceneviewer_widget.data['x'], self._ui.sceneviewer_widget.data['cache'][f'LG{key}'], pen='b', title=f'EEG values from {key} (LG{key})',
                     labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
             self._ui.sceneviewer_widget.line = self._ui.sceneviewer_widget.pw.addLine(x=self._ui.sceneviewer_widget.time, pen='r')  # show current time
-
-
 
     def _displayImagePlaneClicked(self):
         self._plane_model.setImagePlaneVisible(self._ui.displayImagePlane_checkBox.isChecked())
@@ -504,12 +501,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.sceneviewer_widget._model = self._plane_model
             self._ui.sceneviewer_widget._calculatePointOnPlane = None
             self._ui.sceneviewer_widget.mousePressEvent = self._original_mousePressEvent
-
-
-            #TESTING ADDING ANOTHER QtGuiWindow
-
-
-
 
 
 def mousePressEvent(self, event):
