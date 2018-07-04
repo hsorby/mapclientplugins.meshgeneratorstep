@@ -25,7 +25,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
     """
 
     def __init__(self, region, material_module):
-        super(MeshGeneratorModel, self).__init__()
+        super(MeshGeneratorModel, self).__init__()  # is this not a super of the class we are in?
         self._region_name = "generated_mesh"
         self._parent_region = region
         self._materialmodule = material_module
@@ -51,6 +51,9 @@ class MeshGeneratorModel(MeshAlignmentModel):
         }
         self._discoverAllMeshTypes()
 
+
+    def getRegion(self):
+        return self._region
 
     def _discoverAllMeshTypes(self):
         scaffoldmaker = Scaffoldmaker()
@@ -166,21 +169,6 @@ class MeshGeneratorModel(MeshAlignmentModel):
     def getScaleText(self):
         return self._settings['scale']
 
-
-
-
-    def createEEGspectrum(self):
-        fm = region.getFieldmodule()
-        cache = fm.createFieldcache()
-        coordinates = fm.findFieldByName('coordinates')
-        coordinates = coordinates.castFiniteElement()
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodeIdentifier = nodes.getSize() + 1
-
-
     def _parseScaleText(self, scaleTextIn):
         """
         :return: True if scale changed, otherwise False
@@ -200,13 +188,6 @@ class MeshGeneratorModel(MeshAlignmentModel):
         self._scale = scale
         self._settings['scale'] = scaleText
         return changed
-
-    def updateEEGcolours(self, value):
-        fm = self._region.getFieldmodule()
-        scene = self._region.getScene()
-        displaySurface = scene.findGraphicsByName('displaySurfaces')
-        constant = fm.createFieldConstant(value)
-        displaySurface.setDataField(constant)
 
     def setScaleText(self, scaleTextIn):
         if self._parseScaleText(scaleTextIn):
@@ -394,57 +375,10 @@ class MeshGeneratorModel(MeshAlignmentModel):
     # coordinates = fm.findFieldByName('coordinates')
     # findMeshLoc = fm.createFieldFindMeshLocation(coordinates, coordinates, mesh)
 
-    def updateEEGnodeColours(self, values):
-        fm = self._region.getFieldmodule()
-        self._scene.beginChange()
-        cache = fm.createFieldcache()
-        colour = fm.findFieldByName('colour')
-        colour = colour.castFiniteElement()
-        nodeset = fm.findNodesetByName('nodes')
-        for i in range(self.eegSize):
-            node = nodeset.findNodeByIdentifier(self.numberInModel+1+i)
-            cache.setNode(node)
-            colour.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, values[i])
-        self._scene.endChange()
-
     def initialiseTimeSequences(self, data):
         fm = self._region.getFieldmodule()
         cache = fm.createFieldcache()
         colour = fm.findFieldByName('colour')
-
-
-    def createEEGPoints(self, region, eeg_group, eeg_coord, i, cache, fe_field):
-        # createEEGPoints creates subgroups of points that use the 'colour' field to change colour
-
-        fm = region.getFieldmodule()
-        coordinates = fm.findFieldByName('coordinates')
-        coordinates = coordinates.castFiniteElement()
-        colour = fm.findFieldByName('colour')
-        colour = colour.castFiniteElement()
-
-        # Create templates
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplate.defineField(colour)
-        nodetemplate.setValueNumberOfVersions(colour, -1, Node.VALUE_LABEL_VALUE, 1)
-
-        # Assign values for the new EEG subset
-        eeg_group.removeAllNodes()
-        eegNode = nodes.createNode(self.numberInModel + i + 1, nodetemplate)
-        cache.setNode(eegNode)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, eeg_coord[i])
-        cache.setTime(0)
-        cache.setNode(eegNode)
-        colour.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, .1)
-        cache.clearLocation()
-        cache.setTime(1)
-        cache.setNode(eegNode)
-        colour.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, .9)
-        eeg_group.addNode(eegNode)
-
-
 
     def _createGraphics(self, region):
         # Node numbers are generated here
@@ -476,82 +410,14 @@ class MeshGeneratorModel(MeshAlignmentModel):
         lines.setName('displayLines')
         lines.setVisibilityFlag(self.isDisplayLines())
 
-
         nodeNumbers = scene.createGraphicsPoints()
         nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodeNumbers.setCoordinateField(coordinates)
         pointattr = nodeNumbers.getGraphicspointattributes()
         pointattr.setLabelField(cmiss_number)
-
-
         nodeNumbers.setVisibilityFlag(self.isDisplayNodeNumbers())
-
-        # Add EEG nodes
-
-        eeg_coord = [[.5, 0.5, 0],
-                     [0, 0.5, 0],
-                     [-.5, 0.5, 0],
-                     [.5, 0, 0],
-                     [0, 0, 0],
-                     [-.5, 0, 0],
-                     [.5, -.5, 0],
-                     [0, -.5, 0],
-                     [-.5, -.5, 0]]
-
-        self.eegSize = len(eeg_coord)
-        for i in range(self.eegSize):
-            eeg_coord[i][0] = eeg_coord[i][0]*.8
-            eeg_coord[i][1] = eeg_coord[i][1]*.8
-
-        # Add Spectrum
-        spcmod = scene.getSpectrummodule()
-        spec = spcmod.getDefaultSpectrum()
-        spec.setName('eegColourSpectrum')
-        constant = fm.createFieldConstant(0)
-        constant.setName('spectrumConstant')
-
-        cache = fm.createFieldcache()
-
-
-        self.ndsg = []
-        self.pointattrList = []
-        self.spectrumList = []
-        self.nodeColours = []
-        finite_element_field = []
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.numberInModel = nodes.getSize()
-
-        #create all EEG subgroups
-        colour = fm.createFieldFiniteElement(1)
-        colour.setName('colour')
-        colour.setManaged(True)
-        for i in range(len(eeg_coord)):
-            #create
-
-            self.nodeColours.append(scene.createGraphicsPoints())
-            self.nodeColours[i].setFieldDomainType(Field.DOMAIN_TYPE_NODES)
-            self.nodeColours[i].setCoordinateField(coordinates)
-            fng = fm.createFieldNodeGroup(fm.findNodesetByName('nodes'))
-            self.ndsg.append(fng.getNodesetGroup())
-
-            #create new subgroup containing our node
-            self.createEEGPoints(region, self.ndsg[i], eeg_coord, i, cache ,finite_element_field)
-            self.nodeColours[i].setSubgroupField(fng)
-
-            #set attributes for our new node
-            self.nodeColours[i].setSpectrum(spec)
-            self.nodeColours[i].setDataField(colour)
-            self.pointattrList.append(self.nodeColours[i].getGraphicspointattributes())
-            self.pointattrList[i].setLabelText(1, f'ECG Node {i}')
-            self.pointattrList[i].setLabelOffset([1.5, 1.5, 0])
-            self.pointattrList[i].setGlyphShapeType(Glyph.SHAPE_TYPE_SPHERE)
-            self.pointattrList[i].setBaseSize([.05, .05, 2])
-
-        nodeNumbers.setDataField(constant)
         nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('white'))
         nodeNumbers.setName('displayNodeNumbers')
-
-
 
         elementNumbers = scene.createGraphicsPoints()
         elementNumbers.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
@@ -569,8 +435,6 @@ class MeshGeneratorModel(MeshAlignmentModel):
         surfacesMaterial = self._materialmodule.findMaterialByName('trans_blue' if self.isDisplaySurfacesTranslucent() else 'solid_blue')
         surfaces.setMaterial(surfacesMaterial)
         surfaces.setName('displaySurfaces')
-        surfaces.setSpectrum(spec)
-        surfaces.setDataField(constant)
         surfaces.setVisibilityFlag(self.isDisplaySurfaces())
 
         # derivative arrow width is based on shortest non-zero side

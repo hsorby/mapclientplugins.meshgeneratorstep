@@ -13,6 +13,7 @@ from functools import partial
 
 from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import FIDUCIAL_MARKER_LABELS
 from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_MeshGeneratorWidget
+from mapclientplugins.meshgeneratorstep.model.blackfynnECGgraphics import EcgGraphics
 
 from opencmiss.utils.maths import vectorops
 import time
@@ -32,6 +33,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._model.registerFrameIndexUpdateCallback(self._updateFrameIndex)
         self._generator_model = model.getGeneratorModel()
         self._plane_model = model.getPlaneModel()
+
         self._fiducial_marker_model = model.getFiducialMarkerModel()
         self._ui.sceneviewer_widget.setContext(model.getContext())
         self._ui.sceneviewer_widget.setModel(self._plane_model)
@@ -48,9 +50,8 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.meshType_comboBox.addItem(meshTypeName)
         self._makeConnections()
 
-        #self._ui.sceneviewer_widget.blackfynn = BlackfynnGet()
+        self._ecg_graphics = model.getEcgGraphics()
         self.blackfynn = BlackfynnGet()
-        self._ui.sceneviewer_widget.pw = None
         self.data = {}
         self.blackfynn.loaded = False
         self.y_scaled = 0
@@ -251,11 +252,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         colours_at_current_time = []
         for key in self.data['scaled']:
             colours_at_current_time.append(self.data['scaled'][key][self.currentFrame(time)])
-        self._generator_model.updateEEGnodeColours(colours_at_current_time)
-
-
-
-
+        self._ecg_graphics.updateEEGnodeColours(colours_at_current_time)
 
     def scaleCacheData(self):
         tempDict = {}
@@ -277,6 +274,12 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def _EEGAnimationClicked(self):
         if self.data:
             self.scaleCacheData()
+            self._ecg_graphics.setRegion(self._generator_model.getRegion())
+            self._ecg_graphics.createGraphics()
+        else:
+            self.pw = pg.plot(title='Please load your data from blackfynn so we can show you your ECG data'
+                              + '(Use the blackfynn API key)')
+
 
     def currentFrame(self, value):
         frame_count = self._plane_model.getFrameCount()

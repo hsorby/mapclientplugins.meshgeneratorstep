@@ -9,6 +9,7 @@ from opencmiss.zinc.material import Material
 from mapclientplugins.meshgeneratorstep.model.meshgeneratormodel import MeshGeneratorModel
 from mapclientplugins.meshgeneratorstep.model.meshplanemodel import MeshPlaneModel
 from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import FiducialMarkerModel
+from mapclientplugins.meshgeneratorstep.model.blackfynnECGgraphics import EcgGraphics
 
 
 class MasterModel(object):
@@ -29,6 +30,7 @@ class MasterModel(object):
         self._plane_model = MeshPlaneModel(self._region)
         self._fiducial_marker_model = FiducialMarkerModel(self._region)
         self._fiducial_marker_model.registerGetPlaneInfoMethod(self._plane_model.getPlaneInfo)
+        self._ecgGraphics = EcgGraphics()
         self._settings = {
             'frames-per-second': 25,
             'time-loop': False
@@ -63,8 +65,8 @@ class MasterModel(object):
         trans_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 0.7, 1.0 ])
         trans_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
         trans_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
-        trans_blue.setAttributeReal(Material.ATTRIBUTE_ALPHA , 0.3)
-        trans_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
+        trans_blue.setAttributeReal(Material.ATTRIBUTE_ALPHA , 0.9)
+        trans_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.9)
         glyphmodule = self._context.getGlyphmodule()
         glyphmodule.defineStandardGlyphs()
 
@@ -104,6 +106,9 @@ class MasterModel(object):
 
     def getFiducialMarkerModel(self):
         return self._fiducial_marker_model
+
+    def getEcgGraphics(self):
+        return self._ecgGraphics
 
     def getScene(self):
         return self._region.getScene()
