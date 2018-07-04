@@ -11,6 +11,7 @@ from functools import partial
 import pyqtgraph as pg
 import numpy as np
 
+from mapclientplugins.meshgeneratorstep.model.blackfynnmodel import BlackfynnModel
 from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import FIDUCIAL_MARKER_LABELS
 from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_MeshGeneratorWidget
 
@@ -44,14 +45,15 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.meshType_comboBox.addItem(meshTypeName)
         self._makeConnections()
 
-        #self._ui.sceneviewer_widget.blackfynn = BlackfynnGet()
-        self.blackfynn = BlackfynnGet()
+        self._blackfynn = BlackfynnModel()
+
+        # All this needs to go.
         self._ui.sceneviewer_widget.pw = None
         self._ui.sceneviewer_widget.data = {}
-        self.blackfynn.loaded = False
-        self.y_scaled = 0
-        self.pw = None
-        self.time = 0
+        self._y_scaled = 0
+        self._pw = None
+        self._time = 0
+        self._data = None
 
     def _graphicsInitialized(self):
         """
@@ -128,23 +130,22 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.timeLoop_checkBox.clicked.connect(self._timeLoopClicked)
         self._ui.displayFiducialMarkers_checkBox.clicked.connect(self._displayFiducialMarkersClicked)
         self._ui.fiducialMarker_comboBox.currentIndexChanged.connect(self._fiducialMarkerChanged)
-        self._ui.submitButton.clicked.connect(self._submitClicked)
-        self._ui.displayEEGAnimation_checkBox.clicked.connect(self._EEGAnimationClicked)
+
+        # self._ui.submitButton.clicked.connect(self._submitClicked)
+        # self._ui.displayEEGAnimation_checkBox.clicked.connect(self._EEGAnimationClicked)
         # self._ui.treeWidgetAnnotation.itemSelectionChanged.connect(self._annotationSelectionChanged)
         # self._ui.treeWidgetAnnotation.itemChanged.connect(self._annotationItemChanged)
 
         # currently not able to loop it (will have to do later
-        self._ui.LG3.clicked.connect(self._lg3)
-        self._ui.LG4.clicked.connect(self._lg4)
-        self._ui.LG10.clicked.connect(self._lg10)
-        self._ui.LG3.setText('')
-        self._ui.LG3.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
-        self._ui.LG4.setText('')
-        self._ui.LG4.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
-        self._ui.LG10.setText('')
-        self._ui.LG10.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
-
-
+        # self._ui.LG3.clicked.connect(self._lg3)
+        # self._ui.LG4.clicked.connect(self._lg4)
+        # self._ui.LG10.clicked.connect(self._lg10)
+        # self._ui.LG3.setText('')
+        # self._ui.LG3.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+        # self._ui.LG4.setText('')
+        # self._ui.LG4.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+        # self._ui.LG10.setText('')
+        # self._ui.LG10.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
     def _fiducialMarkerChanged(self):
         self._fiducial_marker_model.setActiveMarker(self._ui.fiducialMarker_comboBox.currentText())
@@ -229,44 +230,36 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.timeValue_doubleSpinBox.blockSignals(True)
         frame_count = self._plane_model.getFrameCount()
         max_time_value = frame_count / self._ui.framesPerSecond_spinBox.value()
-        self.time = self._model._current_time
         if value > max_time_value:
             self._ui.timeValue_doubleSpinBox.setValue(max_time_value)
             self._timePlayStopClicked()
         else:
             self._ui.timeValue_doubleSpinBox.setValue(value)
-            if self.pw is not None:
+            if self._pw is not None:
                 self.line.setValue(round(value, 3)) # adjust time marker
-            if self._ui.displayEEGAnimation_checkBox.isChecked() and self.y_scaled.any() is not 0:
-                self._generator_model.updateEEGcolours(self.y_scaled[self.currentFrame(value)]) # use model to update colours
+            if self._ui.displayEEGAnimation_checkBox.isChecked() and self._y_scaled.any() is not 0:
+                # Use model to update colours
+                self._generator_model.updateEEGcolours(self._y_scaled[self._currentFrame(value)])
         self._ui.timeValue_doubleSpinBox.blockSignals(False)
 
 
     def _EEGAnimationClicked(self):
-        if self.data:
+        if self._data:
             # scale the data
             numFrames = self._plane_model.getFrameCount()
-            y = np.array(self.data['y'])
+            y = np.array(self._data['y'])
             yt = np.add(y, np.amin(y) * -1)
             x = np.linspace(0, 1, len(yt))
             xterp = np.linspace(0, 1, numFrames)
             yterp = np.interp(xterp, x, yt)
             y_scaled = np.multiply(yterp, 1 / np.amax(yterp))
-            self.y_scaled = y_scaled
+            self._y_scaled = y_scaled
 
-    def currentFrame(self, value):
+    def _currentFrame(self, value):
         frame_count = self._plane_model.getFrameCount()
-        frame_vals = np.linspace(0,4,frame_count)
-        currentFrame = (np.abs(frame_vals - value)).argmin()
-        return currentFrame
-
-    def find_nearest(array, value):
-        # fin_nearets() Find the index of the nearest value in an array
-        idx = np.searchsorted(array, value, side="left")
-        if idx > 0 and (idx == len(array) or math.fabs(value - array[idx - 1]) < math.fabs(value - array[idx])):
-            return array[idx - 1]
-        else:
-            return array[idx]
+        frame_values = np.linspace(0, 4, frame_count)
+        current_frame = (np.abs(frame_values - value)).argmin()
+        return current_frame
 
     def _updateFrameIndex(self, value):
         self._ui.frameIndex_spinBox.blockSignals(True)
@@ -319,30 +312,30 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self.blackfynn.loaded = True
 
             # need to add the blackfynn data initialisation here
+
     def initialiseBlackfynnData(self):
         # self.blackfynn.api_key = self._ui.api_key.text()  <- commented so that we do not have to enter key each time
         # self.blackfynn.api_secret = self._ui.api_secret.text()
         self.blackfynn.set_api_key_login()
         self.blackfynn.set_params(channels='LG4', window_from_start=4) # need to add dataset selection
-        self.data = self.blackfynn.get()
-        self.pw = pg.plot()
+        self._data = self.blackfynn.get()
+        self._pw = pg.plot()
         self.updatePlot(4)
 
     def updatePlot(self, key):
         try:
-            self.data['cache'][f'LG{key}']
+            self._data['cache'][f'LG{key}']
         except KeyError:
             print('ERROR: selected data could not be found')
-            self.pw.plot(title='Error in data collection')
+            self._pw.plot(title='Error in data collection')
             return
-        self.pw.clear()
-        self.pw.plot(self.data['x'],
-                     self.data['cache'][f'LG{key}'],
-                     pen='b',
-                     title=f'EEG values from {key} (LG{key})',
-                     labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
-        self.line = self.pw.addLine(x=self.time,
-                                    pen='r')  # show current time
+        self._pw.clear()
+        self._pw.plot(self._data['x'],
+                      self._data['cache'][f'LG{key}'],
+                      pen='b',
+                      title=f'EEG values from {key} (LG{key})',
+                      labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
+        self.line = self._pw.addLine(x=self._model.getCurrentTime(), pen='r')  # show current time
 
     # For linking each EEG node
     def _lg3(self):
@@ -357,11 +350,11 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def EEGSelectionDisplay(self, key):
         # For selecting EEG (brain) points
         print(f'key {key} clicked!')
-        if self.data:
-            self.pw.clear()
-            self.pw.plot(self.data['x'], self.data['cache'][f'LG{key}'], pen='b', title=f'EEG values from {key} (LG{key})',
-                    labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
-            self.line = self.pw.addLine(x=self.time, pen='r')  # show current time
+        if self._data:
+            self._pw.clear()
+            self._pw.plot(self._data['x'], self._data['cache'][f'LG{key}'], pen='b', title=f'EEG values from {key} (LG{key})',
+                          labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
+            self.line = self._pw.addLine(x=self._model.getCurrentTime(), pen='r')  # show current time
 
     def _displayImagePlaneClicked(self):
         self._plane_model.setImagePlaneVisible(self._ui.displayImagePlane_checkBox.isChecked())
@@ -418,7 +411,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
                 layout.addWidget(lineEdit)
 
     def _refreshOptions(self):
-        self._ui.identifier_label_2.setText('Identifier:  ' + self._model.getIdentifier())
+        self._ui.identifier_label.setText('Identifier:  ' + self._model.getIdentifier())
         self._ui.deleteElementsRanges_lineEdit.setText(self._generator_model.getDeleteElementsRangesText())
         self._ui.scale_lineEdit.setText(self._generator_model.getScaleText())
         self._ui.displayAxes_checkBox.setChecked(self._generator_model.isDisplayAxes())
