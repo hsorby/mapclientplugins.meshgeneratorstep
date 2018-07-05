@@ -18,7 +18,8 @@ def readfile(filename, split=False):
 readme = readfile("README.rst", split=True)[3:]  # skip title
 # For requirements not hosted on PyPi place listings
 # into the 'requirements.txt' file.
-requires = ['git+https://github.com/scardine/image_size']  # minimal requirements listing
+requires = ['git+https://github.com/scardine/image_size',
+            'PySide',]  # minimal requirements listing
 source_license = readfile("LICENSE")
 
 
