@@ -13,7 +13,6 @@ from opencmiss.zinc.glyph import Glyph
 from opencmiss.zinc.graphics import Graphics
 from opencmiss.zinc.node import Node
 from scaffoldmaker.scaffoldmaker import Scaffoldmaker
-from scaffoldmaker.utils.zinc_utils import *
 
 
 from mapclientplugins.meshgeneratorstep.model.meshalignmentmodel import MeshAlignmentModel
@@ -417,6 +416,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         nodeNumbers.setCoordinateField(coordinates)
         pointattr = nodeNumbers.getGraphicspointattributes()
         pointattr.setLabelField(cmiss_number)
+        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
         nodeNumbers.setVisibilityFlag(self.isDisplayNodeNumbers())
         nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('white'))
         nodeNumbers.setName('displayNodeNumbers')
@@ -484,7 +484,6 @@ class MeshGeneratorModel(MeshAlignmentModel):
         xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
         self.applyAlignment()
         scene.endChange()
-
 
     def writeModel(self, file_name):
         self._region.writeFile(file_name)

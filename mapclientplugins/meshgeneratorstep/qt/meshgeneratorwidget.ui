@@ -517,7 +517,7 @@
                 <item row="2" column="0">
                  <widget class="QLabel" name="blackfynnDataset_label">
                   <property name="text">
-                   <string>Sataset name:</string>
+                   <string>Dataset name:</string>
                   </property>
                  </widget>
                 </item>

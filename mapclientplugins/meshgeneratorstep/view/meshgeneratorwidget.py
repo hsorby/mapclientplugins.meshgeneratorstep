@@ -11,10 +11,8 @@ from functools import partial
 import pyqtgraph as pg
 import numpy as np
 
-from mapclientplugins.meshgeneratorstep.model.blackfynnmodel import BlackfynnModel
 from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import FIDUCIAL_MARKER_LABELS
 from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_MeshGeneratorWidget
-from mapclientplugins.meshgeneratorstep.model.blackfynnECGgraphics import EcgGraphics
 
 from opencmiss.utils.maths import vectorops
 
@@ -25,13 +23,15 @@ class MeshGeneratorWidget(QtGui.QWidget):
         super(MeshGeneratorWidget, self).__init__(parent)
         self._ui = Ui_MeshGeneratorWidget()
         self._ui.setupUi(self)
+
         self._model = model
         self._model.registerTimeValueUpdateCallback(self._updateTimeValue)
         self._model.registerFrameIndexUpdateCallback(self._updateFrameIndex)
         self._generator_model = model.getGeneratorModel()
         self._plane_model = model.getPlaneModel()
-
         self._fiducial_marker_model = model.getFiducialMarkerModel()
+        self._blackfynn = model.getBlackfynnModel()
+
         self._ui.sceneviewer_widget.setContext(model.getContext())
         self._ui.sceneviewer_widget.setModel(self._plane_model)
         self._model.registerSceneChangeCallback(self._sceneChanged)
@@ -39,6 +39,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._populateFiducialMarkersComboBox()
         self._marker_mode_active = False
         self._have_images = False
+
         self.x = 0
         self.y = 0
         # self._populateAnnotationTree()
@@ -47,12 +48,11 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.meshType_comboBox.addItem(meshTypeName)
         self._makeConnections()
 
-        self._ecg_graphics = model.getEcgGraphics()
-        self._blackfynn = BlackfynnModel()
+        # self._ecg_graphics = model.getEcgGraphics()
 
         # All this needs to go.
-        self._ui.sceneviewer_widget.pw = None
-        self._ui.sceneviewer_widget.data = {}
+        # self._ui.sceneviewer_widget.pw = None
+        # self._ui.sceneviewer_widget.data = {}
         self._y_scaled = 0
         self._pw = None
         self._time = 0
@@ -92,7 +92,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._ui.sceneviewer_widget.setScene(scene)
             self._autoPerturbLines()
             self._viewAll()
-
 
     def _autoPerturbLines(self):
         """
@@ -230,6 +229,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         sceneviewer.setLookatParametersNonSkew(eye_pos, lookat_pos, up)
 
     def _updateTimeValue(self, value):
+        print('update time value')
         self._ui.timeValue_doubleSpinBox.blockSignals(True)
         frame_count = self._plane_model.getFrameCount()
         max_time_value = frame_count / self._ui.framesPerSecond_spinBox.value()
@@ -240,28 +240,28 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._timePlayStopClicked()
         else:
             self._ui.timeValue_doubleSpinBox.setValue(value)
-            if self.pw is not None:
+            if self._pw is not None:
                 self.line.setValue(round(value, 3)) # adjust time marker
-            if self._ui.displayEEGAnimation_checkBox.isChecked() and self.data is not False:
+            if self._ui.displayEEGAnimation_checkBox.isChecked() and self._data is not False:
                 # use model to update colours
                 self.updateAllNodes(value)
         self._ui.timeValue_doubleSpinBox.blockSignals(False)
 
     def updateAllNodes(self, time):
         colours_at_current_time = []
-        for key in self.data['scaled']:
-            colours_at_current_time.append(self.data['scaled'][key][self.currentFrame(time)])
+        for key in self._data['scaled']:
+            colours_at_current_time.append(self._data['scaled'][key][self.currentFrame(time)])
         self._ecg_graphics.updateEEGnodeColours(colours_at_current_time)
 
-    def scaleCacheData(self):
+    def _scaleCacheData(self):
         tempDict = {}
-        for i, key in enumerate(self.data['cache']):
-            tempDict[str(i)] = self.scaleData(key)
-        self.data['scaled'] = tempDict
+        for i, key in enumerate(self._data['cache']):
+            tempDict[str(i)] = self._scaleData(key)
+        self._data['scaled'] = tempDict
 
-    def scaleData(self, key):
+    def _scaleData(self, key):
         numFrames = self._plane_model.getFrameCount()
-        y = np.array(self.data['cache'][key])
+        y = np.array(self._data['cache'][key])
         yt = np.add(y, np.amin(y) * -1)
         x = np.linspace(0, 1, len(yt))
         xterp = np.linspace(0, 1, numFrames)
@@ -269,16 +269,14 @@ class MeshGeneratorWidget(QtGui.QWidget):
         y_scaled = np.multiply(yterp, 1 / np.amax(yterp))
         return y_scaled
 
-
     def _EEGAnimationClicked(self):
-        if self.data:
-            self.scaleCacheData()
+        if self._data:
+            self._scaleCacheData()
             self._ecg_graphics.setRegion(self._generator_model.getRegion())
             self._ecg_graphics.createGraphics()
         else:
-            self.pw = pg.plot(title='Please load your data from blackfynn so we can show you your ECG data'
-                              + '(Use the blackfynn API key)')
-
+            self._pw = pg.plot(title='Please load your data from blackfynn so we can show you your ECG data'
+                                     + '(Use the blackfynn API key)')
 
     def _currentFrame(self, value):
         frame_count = self._plane_model.getFrameCount()
@@ -513,6 +511,8 @@ class MeshGeneratorWidget(QtGui.QWidget):
         """
         Ask sceneviewer to show all of scene.
         """
+        print('print log')
+        self._model.printLog()
         if self._ui.sceneviewer_widget.getSceneviewer() is not None:
             self._ui.sceneviewer_widget.viewAll()
 

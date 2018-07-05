@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'qt\meshgeneratorwidget.ui'
 #
-# Created: Thu Jul  5 11:33:34 2018
+# Created: Thu Jul  5 11:53:52 2018
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -379,7 +379,7 @@ class Ui_MeshGeneratorWidget(object):
         self.fiducialMarkerTransform_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Transform:", None, QtGui.QApplication.UnicodeUTF8))
         self.fiducialMarkerTransform_pushButton.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "To Scaffold", None, QtGui.QApplication.UnicodeUTF8))
         self.blackfynn_groupBox.setTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Blackfynn:", None, QtGui.QApplication.UnicodeUTF8))
-        self.blackfynnDataset_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Sataset name:", None, QtGui.QApplication.UnicodeUTF8))
+        self.blackfynnDataset_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Dataset name:", None, QtGui.QApplication.UnicodeUTF8))
         self.blackfynnTimeSeries_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Time series name:", None, QtGui.QApplication.UnicodeUTF8))
         self.blackfynnDataset_lineEdit.setPlaceholderText(QtGui.QApplication.translate("MeshGeneratorWidget", "name", None, QtGui.QApplication.UnicodeUTF8))
         self.blackfynnTimeSeries_lineEdit.setPlaceholderText(QtGui.QApplication.translate("MeshGeneratorWidget", "name", None, QtGui.QApplication.UnicodeUTF8))

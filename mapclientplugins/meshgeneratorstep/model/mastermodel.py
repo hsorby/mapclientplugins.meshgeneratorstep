@@ -6,10 +6,10 @@ from PySide import QtCore
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.material import Material
 
+from mapclientplugins.meshgeneratorstep.model.blackfynnmodel import BlackfynnModel
 from mapclientplugins.meshgeneratorstep.model.meshgeneratormodel import MeshGeneratorModel
 from mapclientplugins.meshgeneratorstep.model.meshplanemodel import MeshPlaneModel
 from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import FiducialMarkerModel
-from mapclientplugins.meshgeneratorstep.model.blackfynnECGgraphics import EcgGraphics
 
 
 class MasterModel(object):
@@ -30,7 +30,8 @@ class MasterModel(object):
         self._plane_model = MeshPlaneModel(self._region)
         self._fiducial_marker_model = FiducialMarkerModel(self._region)
         self._fiducial_marker_model.registerGetPlaneInfoMethod(self._plane_model.getPlaneInfo)
-        self._ecgGraphics = EcgGraphics()
+        # self._ecgGraphics = EcgGraphics()
+        self._blackfynn_model = BlackfynnModel()
         self._settings = {
             'frames-per-second': 25,
             'time-loop': False
@@ -106,6 +107,9 @@ class MasterModel(object):
 
     def getFiducialMarkerModel(self):
         return self._fiducial_marker_model
+
+    def getBlackfynnModel(self):
+        return self._blackfynn_model
 
     def getEcgGraphics(self):
         return self._ecgGraphics
