@@ -13,7 +13,6 @@ from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import Fiducia
 
 
 class MasterModel(object):
-
     def __init__(self, location, identifier):
         self._location = location
         self._identifier = identifier
@@ -54,20 +53,20 @@ class MasterModel(object):
         solid_blue = self._materialmodule.createMaterial()
         solid_blue.setName('solid_blue')
         solid_blue.setManaged(True)
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.2, 0.6 ])
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 0.7, 1.0 ])
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
-        solid_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
-        solid_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [0.0, 0.2, 0.6])
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [0.0, 0.7, 1.0])
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [0.0, 0.0, 0.0])
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [0.1, 0.1, 0.1])
+        solid_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS, 0.2)
         trans_blue = self._materialmodule.createMaterial()
         trans_blue.setName('trans_blue')
         trans_blue.setManaged(True)
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.2, 0.6 ])
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 0.7, 1.0 ])
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
-        trans_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
-        trans_blue.setAttributeReal(Material.ATTRIBUTE_ALPHA , 0.9)
-        trans_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.9)
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [0.0, 0.2, 0.6])
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [0.0, 0.7, 1.0])
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [0.0, 0.0, 0.0])
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [0.1, 0.1, 0.1])
+        trans_blue.setAttributeReal(Material.ATTRIBUTE_ALPHA, 0.3)
+        trans_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS, 0.2)
         glyphmodule = self._context.getGlyphmodule()
         glyphmodule.defineStandardGlyphs()
 
@@ -75,21 +74,22 @@ class MasterModel(object):
         self._timer.timeout.connect(self._timeout)
 
     def _timeout(self):
-        self._current_time += 1000/self._settings['frames-per-second']/1000
+        self._current_time += 1000 / self._settings['frames-per-second'] / 1000
         duration = self._plane_model.getFrameCount() / self._settings['frames-per-second']
         if self._settings['time-loop'] and self._current_time > duration:
             self._current_time -= duration
         self._timekeeper.setTime(self._scaleCurrentTimeToTimekeeperTime())
         self._timeValueUpdate(self._current_time)
         if not self._plane_model.isDisabled():
-            frame_index = self._plane_model.getFrameIndexForTime(self._current_time, self._settings['frames-per-second']) + 1
+            frame_index = self._plane_model.getFrameIndexForTime(self._current_time,
+                                                                 self._settings['frames-per-second']) + 1
             self._frameIndexUpdate(frame_index)
 
     def _scaleCurrentTimeToTimekeeperTime(self):
         scaled_time = 0.0
         duration = self._plane_model.getFrameCount() / self._settings['frames-per-second']
         if duration > 0:
-            scaled_time = self._current_time/duration
+            scaled_time = self._current_time / duration
 
         return scaled_time
 
@@ -148,7 +148,7 @@ class MasterModel(object):
         return self._settings['time-loop']
 
     def play(self):
-        self._timer.start(1000/self._settings['frames-per-second'])
+        self._timer.start(1000 / self._settings['frames-per-second'])
 
     def stop(self):
         self._timer.stop()
@@ -196,4 +196,3 @@ class MasterModel(object):
         settings = self._getSettings()
         with open(self._filenameStem + '-settings.json', 'w') as f:
             f.write(json.dumps(settings, default=lambda o: o.__dict__, sort_keys=True, indent=4))
-
