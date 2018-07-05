@@ -426,7 +426,7 @@ class MeshGeneratorModel(MeshAlignmentModel):
         elementNumbers.setCoordinateField(coordinates)
         pointattr = elementNumbers.getGraphicspointattributes()
         pointattr.setLabelField(cmiss_number)
-        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
+        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_DIAMOND)
         elementNumbers.setMaterial(self._materialmodule.findMaterialByName('red'))
         elementNumbers.setName('displayElementNumbers')
         elementNumbers.setVisibilityFlag(self.isDisplayElementNumbers())

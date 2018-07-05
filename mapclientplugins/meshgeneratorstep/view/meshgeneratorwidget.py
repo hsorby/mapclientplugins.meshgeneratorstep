@@ -511,8 +511,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
         """
         Ask sceneviewer to show all of scene.
         """
-        print('print log')
-        self._model.printLog()
         if self._ui.sceneviewer_widget.getSceneviewer() is not None:
             self._ui.sceneviewer_widget.viewAll()
 
