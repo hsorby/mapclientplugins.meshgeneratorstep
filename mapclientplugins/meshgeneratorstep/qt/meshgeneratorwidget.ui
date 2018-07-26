@@ -75,9 +75,9 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-295</y>
+            <y>-211</y>
             <width>316</width>
-            <height>1070</height>
+            <height>986</height>
            </rect>
           </property>
           <property name="sizePolicy">
@@ -513,70 +513,100 @@
                <property name="title">
                 <string>Blackfynn:</string>
                </property>
-               <layout class="QFormLayout" name="formLayout">
-                <item row="2" column="0">
-                 <widget class="QLabel" name="blackfynnDataset_label">
+               <layout class="QGridLayout" name="gridLayout_5">
+                <item row="1" column="2">
+                 <widget class="QPushButton" name="blackfynnDatasets_pushButton">
+                  <property name="toolTip">
+                   <string>Retrieve datasets</string>
+                  </property>
                   <property name="text">
-                   <string>Dataset name:</string>
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="resources.qrc">
+                    <normaloff>:/meshgeneratorstep/images/download-icon-blue.png</normaloff>:/meshgeneratorstep/images/download-icon-blue.png</iconset>
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="0">
+                <item row="1" column="0">
+                 <widget class="QLabel" name="blackfynnDatasets_label">
+                  <property name="text">
+                   <string>Datasets:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="4" column="0">
                  <widget class="QLabel" name="blackfynnTimeSeries_label">
                   <property name="text">
-                   <string>Time series name:</string>
+                   <string>Time series:</string>
                   </property>
                  </widget>
                 </item>
-                <item row="2" column="1">
-                 <widget class="QLineEdit" name="blackfynnDataset_lineEdit">
-                  <property name="placeholderText">
-                   <string>name</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="1">
-                 <widget class="QLineEdit" name="blackfynnTimeSeries_lineEdit">
-                  <property name="placeholderText">
-                   <string>name</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="0" colspan="2">
-                 <widget class="QCheckBox" name="blackfynnShowEEG_checkBox">
-                  <property name="text">
-                   <string>Show EEG data in animation</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="0" colspan="2">
-                 <widget class="QGroupBox" name="blackfynnCredentials_groupBox">
+                <item row="0" column="0" colspan="3">
+                 <widget class="QGroupBox" name="blackfynnProfiles_groupBox">
                   <property name="title">
-                   <string>Credentials:</string>
+                   <string>Profiles:</string>
                   </property>
-                  <layout class="QFormLayout" name="formLayout_2">
-                   <item row="2" column="0">
-                    <widget class="QPushButton" name="blackfynnCredentialsLogin_pushButton">
+                  <layout class="QHBoxLayout" name="horizontalLayout_5">
+                   <item>
+                    <widget class="QComboBox" name="profiles_comboBox">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                       <horstretch>1</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="addProfile_pushButton">
+                     <property name="toolTip">
+                      <string>Add profile</string>
+                     </property>
                      <property name="text">
-                      <string>Login</string>
+                      <string/>
                      </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="0" colspan="2">
-                    <widget class="QLineEdit" name="blackfynnCredentialsAPISecret_lineEdit">
-                     <property name="placeholderText">
-                      <string>API Secret</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="0" colspan="2">
-                    <widget class="QLineEdit" name="blackfynnCredentialsAPIKey_lineEdit">
-                     <property name="placeholderText">
-                      <string>API Key</string>
+                     <property name="icon">
+                      <iconset resource="resources.qrc">
+                       <normaloff>:/meshgeneratorstep/images/plus-icon-green-th.png</normaloff>:/meshgeneratorstep/images/plus-icon-green-th.png</iconset>
                      </property>
                     </widget>
                    </item>
                   </layout>
+                 </widget>
+                </item>
+                <item row="4" column="2">
+                 <widget class="QPushButton" name="blackfynnTimeSeries_pushButton">
+                  <property name="toolTip">
+                   <string>Retrieve time series</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="resources.qrc">
+                    <normaloff>:/meshgeneratorstep/images/download-icon-blue.png</normaloff>:/meshgeneratorstep/images/download-icon-blue.png</iconset>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QComboBox" name="blackfynnDatasets_comboBox">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                    <horstretch>1</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                 </widget>
+                </item>
+                <item row="4" column="1">
+                 <widget class="QComboBox" name="blackfynnTimeSeries_comboBox">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                    <horstretch>1</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -660,6 +690,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

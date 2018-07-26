@@ -11,7 +11,9 @@ from functools import partial
 import pyqtgraph as pg
 import numpy as np
 
+from mapclient.view.utils import set_wait_cursor
 from mapclientplugins.meshgeneratorstep.model.fiducialmarkermodel import FIDUCIAL_MARKER_LABELS
+from mapclientplugins.meshgeneratorstep.view.addprofile import AddProfileDialog
 from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_MeshGeneratorWidget
 
 from opencmiss.utils.maths import vectorops
@@ -30,7 +32,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._generator_model = model.getGeneratorModel()
         self._plane_model = model.getPlaneModel()
         self._fiducial_marker_model = model.getFiducialMarkerModel()
-        self._blackfynn = model.getBlackfynnModel()
+        self._blackfynn_model = model.getBlackfynnModel()
 
         self._ui.sceneviewer_widget.setContext(model.getContext())
         self._ui.sceneviewer_widget.setModel(self._plane_model)
@@ -132,22 +134,10 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.timeLoop_checkBox.clicked.connect(self._timeLoopClicked)
         self._ui.displayFiducialMarkers_checkBox.clicked.connect(self._displayFiducialMarkersClicked)
         self._ui.fiducialMarker_comboBox.currentIndexChanged.connect(self._fiducialMarkerChanged)
-
-        # self._ui.submitButton.clicked.connect(self._submitClicked)
-        # self._ui.displayEEGAnimation_checkBox.clicked.connect(self._EEGAnimationClicked)
-        # self._ui.treeWidgetAnnotation.itemSelectionChanged.connect(self._annotationSelectionChanged)
-        # self._ui.treeWidgetAnnotation.itemChanged.connect(self._annotationItemChanged)
-
-        # currently not able to loop it (will have to do later
-        # self._ui.LG3.clicked.connect(self._lg3)
-        # self._ui.LG4.clicked.connect(self._lg4)
-        # self._ui.LG10.clicked.connect(self._lg10)
-        # self._ui.LG3.setText('')
-        # self._ui.LG3.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
-        # self._ui.LG4.setText('')
-        # self._ui.LG4.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
-        # self._ui.LG10.setText('')
-        # self._ui.LG10.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+        self._ui.addProfile_pushButton.clicked.connect(self._addProfileClicked)
+        self._ui.blackfynnDatasets_pushButton.clicked.connect(self._downloadDatasetsClicked)
+        self._ui.blackfynnTimeSeries_pushButton.clicked.connect(self._downloadTimeSeriesClicked)
+        self._ui.blackfynnDatasets_comboBox.currentIndexChanged.connect(self._blackfynnDatasetsChanged)
 
     def _fiducialMarkerChanged(self):
         self._fiducial_marker_model.setActiveMarker(self._ui.fiducialMarker_comboBox.currentText())
@@ -319,31 +309,34 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def _fixImagePlaneClicked(self):
         self._plane_model.setImagePlaneFixed(self._ui.fixImagePlane_checkBox.isChecked())
 
-    def _submitClicked(self):
-    # submitClicked initialises all the blackfynn functionality and updates login fields.
-        if self._ui.api_key.displayText() != 'API Key' and self._ui.api_secret.text() != '***************************':
-            self._ui.Login_groupBox.setTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Login details saved, click on a node to open graphs", None,
-                                                                       QtGui.QApplication.UnicodeUTF8))
-            # self._ui.sceneviewer_widget.blackfynn.api_token = self._ui.api_key.text()
-            # self._ui.sceneviewer_widget.blackfynn.api_secret = self._ui.api_secret.text()
-            self.initialiseBlackfynnData()
-            self._ui.api_secret.setText('***************************')
+    def _addProfileClicked(self):
+        dlg = AddProfileDialog(self, self._blackfynn_model.getExistingProfileNames())
 
-            # self._ui.sceneviewer_widget.blackfynn.set_params(channels='LG4', window_from_start=4)
-            # self._ui.sceneviewer_widget.blackfynn.set_api_key_login()
-            # self._ui.sceneviewer_widget.data = self._ui.sceneviewer_widget.blackfynn.get()
-            self.blackfynn.loaded = True
+        if dlg.exec_():
+            profile = dlg.profile()
+            self._blackfynn_model.addProfile(profile)
+            self._refreshBlackfynnOptions()
 
-            # need to add the blackfynn data initialisation here
+    @set_wait_cursor
+    def _retrieveDatasets(self):
+        return self._blackfynn_model.getDatasets(self._ui.profiles_comboBox.currentText(), refresh=True)
 
-    def initialiseBlackfynnData(self):
-        # self.blackfynn.api_key = self._ui.api_key.text()  <- commented so that we do not have to enter key each time
-        # self.blackfynn.api_secret = self._ui.api_secret.text()
-        self.blackfynn.set_api_key_login()
-        self.blackfynn.set_params(channels='LG4', window_from_start=4) # need to add dataset selection
-        self._data = self.blackfynn.get()
-        self._pw = pg.plot()
-        self.updatePlot(4)
+    def _downloadDatasetsClicked(self):
+        datasets = self._retrieveDatasets()
+        self._ui.blackfynnDatasets_comboBox.clear()
+        self._ui.blackfynnDatasets_comboBox.addItems([ds.name for ds in datasets])
+        self._updateBlackfynnUi()
+
+    @set_wait_cursor
+    def _retrieveDataset(self):
+        return self._blackfynn_model.getDataset(self._ui.profiles_comboBox.currentText(),
+                                                self._ui.blackfynnDatasets_comboBox.currentText(), refresh=True)
+
+    def _downloadTimeSeriesClicked(self):
+        dataset = self._retrieveDataset()
+        self._ui.blackfynnTimeSeries_comboBox.clear()
+        self._ui.blackfynnTimeSeries_comboBox.addItems([ds.name for ds in dataset])
+        self._updateBlackfynnUi()
 
     def updatePlot(self, key):
         try:
@@ -359,25 +352,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
                       title=f'EEG values from {key} (LG{key})',
                       labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
         self.line = self._pw.addLine(x=self._model.getCurrentTime(), pen='r')  # show current time
-
-    # For linking each EEG node
-    def _lg3(self):
-        self.updatePlot(3)
-
-    def _lg4(self):
-        self.updatePlot(4)
-
-    def _lg10(self):
-        self.updatePlot(10)
-
-    def EEGSelectionDisplay(self, key):
-        # For selecting EEG (brain) points
-        print(f'key {key} clicked!')
-        if self._data:
-            self._pw.clear()
-            self._pw.plot(self._data['x'], self._data['cache'][f'LG{key}'], pen='b', title=f'EEG values from {key} (LG{key})',
-                          labels={'left': f'EEG value of node LG{key}', 'bottom': 'time in seconds'})
-            self.line = self._pw.addLine(x=self._model.getCurrentTime(), pen='r')  # show current time
 
     def _displayImagePlaneClicked(self):
         self._plane_model.setImagePlaneVisible(self._ui.displayImagePlane_checkBox.isChecked())
@@ -400,6 +374,29 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._generator_model.setMeshTypeOption(lineEdit.objectName(), lineEdit.text())
         finalValue = self._generator_model.getMeshTypeOption(lineEdit.objectName())
         lineEdit.setText(str(finalValue))
+
+    def _blackfynnDatasetsChanged(self, index):
+        print(index)
+
+    def _updateBlackfynnUi(self):
+        valid_profiles = False
+        if self._ui.profiles_comboBox.count() > 0:
+            valid_profiles = True
+
+        self._ui.blackfynnDatasets_comboBox.setEnabled(valid_profiles)
+        self._ui.blackfynnTimeSeries_comboBox.setEnabled(valid_profiles)
+
+        valid_datasets = False
+        if self._ui.blackfynnDatasets_comboBox.count() > 0:
+            valid_datasets = True
+
+        self._ui.blackfynnTimeSeries_pushButton.setEnabled(valid_datasets)
+        self._ui.blackfynnTimeSeries_pushButton.setEnabled(valid_datasets)
+
+    def _refreshBlackfynnOptions(self):
+        self._ui.profiles_comboBox.clear()
+        self._ui.profiles_comboBox.addItems(self._blackfynn_model.getExistingProfileNames())
+        self._updateBlackfynnUi()
 
     def _refreshMeshTypeOptions(self):
         layout = self._ui.meshTypeOptions_frame.layout()
@@ -460,6 +457,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.fiducialMarker_comboBox.blockSignals(True)
         self._ui.fiducialMarker_comboBox.setCurrentIndex(0 if index == -1 else index)
         self._ui.fiducialMarker_comboBox.blockSignals(False)
+        self._refreshBlackfynnOptions()
         self._refreshMeshTypeOptions()
 
     def _deleteElementRangesLineEditChanged(self):

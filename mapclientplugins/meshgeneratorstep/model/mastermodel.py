@@ -170,7 +170,8 @@ class MasterModel(object):
         settings = self._settings
         settings['generator_settings'] = self._generator_model.getSettings()
         settings['image_plane_settings'] = self._plane_model.getSettings()
-        settings['fiducial-markers'] = self._fiducial_marker_model.getSettings()
+        settings['fiducial_markers'] = self._fiducial_marker_model.getSettings()
+        settings['blackfynn_settings'] = self._blackfynn_model.getSettings()
         return settings
 
     def loadSettings(self):
@@ -183,14 +184,17 @@ class MasterModel(object):
                 settings = {'generator_settings': settings}
             if 'image_plane_settings' not in settings:
                 settings.update({'image_plane_settings': self._plane_model.getSettings()})
-            if 'fiducial-markers' not in settings:
-                settings.update({'fiducial-markers': self._fiducial_marker_model.getSettings()})
+            if 'fiducial_markers' not in settings:
+                settings.update({'fiducial_markers': self._fiducial_marker_model.getSettings()})
+            if 'blackfynn_settings' not in settings:
+                settings.update({'blackfynn_settings': self._blackfynn_model.getSettings()})
         except:
             # no settings saved yet, following gets defaults
             settings = self._getSettings()
         self._generator_model.setSettings(settings['generator_settings'])
         self._plane_model.setSettings(settings['image_plane_settings'])
-        self._fiducial_marker_model.setSettings(settings['fiducial-markers'])
+        self._fiducial_marker_model.setSettings(settings['fiducial_markers'])
+        self._blackfynn_model.setSettings(settings['blackfynn_settings'])
 
     def _saveSettings(self):
         settings = self._getSettings()
